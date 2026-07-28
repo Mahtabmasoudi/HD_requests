@@ -33,7 +33,7 @@
 <h2>What This Map Shows</h2>
 <p>A <b>Hydrologic Determination (HD)</b> is TDEC's field ruling on whether a water feature on a property is a regulated <b>stream</b> or an unregulated <b>wet weather conveyance</b>. Developers request one before they build, so an HD is the earliest public signal that a parcel with aquatic features is headed toward disturbance &mdash; it typically <b>precedes an ARAP/&sect;401 permit by 6&ndash;18 months</b>.</p>
 <p>Every determination that carries coordinates is plotted individually as a <b>site dot</b> &mdash; click one for its <b>determination ID, property name, county, year, field office and coordinates</b>, plus a link back to the TDEC DataViewer. Pick a single <b>year tab</b> to see only that year's sites, or <b>5-Year Overall</b> to see all of them at once. Use <b>Show All Data</b> to keep every site visible while the shading still reflects the year you picked.</p>
-<p>The <b>Live</b> tabs &mdash; <b>Last 14 days</b>, <b>Last 30 days</b>, <b>Last 90 days</b> and <b>2026 year-to-date</b> &mdash; pull the <b>current</b> determination points straight from the TDEC service <b>the moment you open this page</b>, so they refresh on their own with no rebuild step. Dots are colored by how recently each determination was investigated, and the county / watershed shading and ranking table reflect the live window. On the <b>Last 14 days</b> and <b>Last 30 days</b> tabs, determinations whose report has been processed show a <b>teal ring</b> — click one to see the streams &amp; WWC identified on the property (length, Corps / TDEC classification, and start/end coordinates), drawn as segments on the map. (The Live tabs need internet; the historical year tabs stay embedded and work offline.)</p>
+<p>The <b>Live</b> tabs &mdash; <b>Last 14 days</b>, <b>Last 30 days</b>, <b>Last 90 days</b> and <b>2026 year-to-date</b> &mdash; pull the <b>current</b> determination points straight from the TDEC service <b>the moment you open this page</b>, so they refresh on their own with no rebuild step. Dots are colored by how recently each determination was investigated, and the county / watershed shading and ranking table reflect the live window. On <b>every Live tab</b>, determinations whose acceptance letter has been processed show a <b>teal ring</b> — click one to see the streams &amp; WWC identified on the property, listed by <b>begin&rarr;end length</b> (longest first) with a <b>feature count</b> and total length for that point, plus each feature's TDEC / Corps classification and begin/end coordinates, drawn as segments on the map. The parsed points come from the 14- and 30-day window; because those points also fall inside the 90-day and 2026 windows, the same detail lights up there too. (The Live tabs need internet; the historical year tabs stay embedded and work offline.)</p>
 <p>Switch between <b>By County</b> and <b>By Watershed</b> with the toggle above the map. In <b>County</b> view each county is shaded by its determination activity and the HUC8 watershed boundaries stay visible as outlines. In <b>Watershed</b> view the HUC8 basins are shaded (the units mitigation credits actually trade within) and county lines drop back to outlines. Zoom in to level&nbsp;15 and the boundaries hand off &mdash; individual parcels and site dots become the clickable layer, so you can read the exact property under a determination without selecting the whole county or watershed.</p>
 <div class="warn"><b>Read this before drawing credit conclusions.</b> This dataset counts <i>requests</i>, not acres. It carries no impact quantity, stream length or wetland acreage, and does not record whether a determination came back as a stream or a wet weather conveyance. It measures <b>where development pressure is landing on aquatic features</b> &mdash; a strong leading indicator of future credit demand, not a measurement of land altered. The HD data and county boundaries are embedded and work offline; <b>watershed boundaries stream live from ArcGIS Online and need internet</b>, and the parcel layer loads from the local <code>tn_parcels.pmtiles</code> (run <code>serve_tn_map.cmd</code> and open <code>http://localhost:8777/hd_requests.html</code>). <b>This TDEC dataset is designed to refresh weekly</b> from the latest export.</div>
 </div>
@@ -698,7 +698,9 @@ function fmtDate(ms){ return new Date(ms).toLocaleDateString('en-US',{year:'nume
 function fmtDateTime(ms){ const d=new Date(ms); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+', '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
 
 /* ---- stream/WWC enrichment (Last 14 / 30-day tabs only), from tn_hd_streams.js ---- */
-const STREAM_WINDOWS={'14':1,'30':1};              // only these windows show report stream tables
+const STREAM_WINDOWS={'14':1,'30':1,'90':1,'2026':1};  // windows that show report stream tables.
+     // The 14/30-day points are a subset of the 90-day & 2026 windows, so the SAME parsed
+     // determinations (keyed by ID) light up on all four live tabs — no re-parse needed.
 function streamsActive(){ return !!(liveMode && STREAM_WINDOWS[liveMode.key]); }
 function normName(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
 function hdStreamsFor(s){
@@ -707,22 +709,39 @@ function hdStreamsFor(s){
 }
 function hdStreamColor(f){ return (f.tdec==='WWC') ? '#c58a34' : '#0d5a6b'; }
 function isPointFeat(f){ return f.point || (f.start[0]===f.end[0] && f.start[1]===f.end[1]); }
+function featLenFt(f){ return (typeof f.lenFt==='number') ? f.lenFt
+    : (isPointFeat(f) ? 0 : null); }
+function fmtLenFt(ft){ if(ft==null) return ''; if(ft===0) return 'point';
+  return (ft<1000? Math.round(ft) : Math.round(ft)).toLocaleString('en-US')+' ft'; }
 function hdStreamsHtml(rec){
-  const rows=rec.features.map(f=>{
+  // features come pre-sorted by begin->end length (longest first) from tn_hd_streams.js.
+  const feats = rec.features.slice().sort((a,b)=> (featLenFt(b)||0)-(featLenFt(a)||0));
+  const nStr = feats.filter(f=>f.tdec!=='WWC').length;
+  const nWwc = feats.filter(f=>f.tdec==='WWC').length;
+  const totalFt = feats.reduce((s,f)=> s+(featLenFt(f)||0), 0);
+  const rows=feats.map(f=>{
     const col=hdStreamColor(f);
     const pt=isPointFeat(f);
+    const lenTxt = f.len ? esc(f.len) : fmtLenFt(featLenFt(f));
     const coords = pt
       ? f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)+' <span style="color:#b6c0c9">(point)</span>'
       : f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)+' &rarr; '+f.end[0].toFixed(5)+', '+f.end[1].toFixed(5);
     const meta = [esc(f.tdec), f.corps?esc(f.corps):null].filter(Boolean).join(' &middot; ');
     return '<div style="border-top:1px solid #eef2f5;padding:4px 0 3px">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="color:'+col+'">'+esc(f.id)+'</b><span style="font-size:11px;color:#41525f">'+(f.len?esc(f.len):'')+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="color:'+col+'">'+esc(f.id)+'</b><span style="font-size:11px;color:#41525f">'+lenTxt+'</span></div>'+
       '<div style="font-size:10.5px;color:#6b7680">'+meta+'</div>'+
       '<div style="font-size:9.5px;color:#9aa7b2;font-family:ui-monospace,Menlo,monospace">'+coords+'</div></div>';
   }).join('');
+  // count-per-point + total begin->end length summary
+  const bits=[];
+  if(nStr) bits.push(nStr+' stream'+(nStr===1?'':'s'));
+  if(nWwc) bits.push(nWwc+' WWC');
+  const summary = '<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;color:#41525f;margin:2px 0 1px">'+
+    '<span><b>'+feats.length+'</b> feature'+(feats.length===1?'':'s')+(bits.length?' · '+bits.join(' · '):'')+'</span>'+
+    (totalFt>0?'<span>Σ '+Math.round(totalFt).toLocaleString('en-US')+' ft</span>':'')+'</div>';
   return '<div style="margin-top:8px;padding-top:5px;border-top:2px solid #eef2f5">'+
-    '<div style="font-size:10px;font-weight:800;letter-spacing:.4px;color:#0d7d8a;text-transform:uppercase;margin-bottom:1px">Streams &amp; WWC · from report</div>'+
-    rows+'</div>';
+    '<div style="font-size:10px;font-weight:800;letter-spacing:.4px;color:#0d7d8a;text-transform:uppercase;margin-bottom:1px">Streams &amp; WWC · begin→end length</div>'+
+    summary+rows+'</div>';
 }
 function drawHdSegments(rec){
   hdStreamLyr.clearLayers();
