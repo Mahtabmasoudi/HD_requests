@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>HD Requests Collected — TDEC (last 5 years)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
+<script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+<link rel="stylesheet" href="tn_shared.css"/>
+<style>
+/* --- live "recent activity" tabs (14/30/90 days + 2026 YTD) --- */
+.yrs{flex-wrap:wrap}
+.yb.lv{border-color:#0d7d8a;color:#0a6d78}
+.yb.lv:hover{border-color:#0a5a63;color:#0a5a63}
+.yb.lv.on{background:#0d7d8a;border-color:#0d7d8a;color:#fff}
+.lvsep{display:inline-flex;align-items:center;gap:7px;margin-left:14px;padding:0 2px;font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#0d7d8a;align-self:center}
+.lvsep::before{content:"";width:8px;height:8px;border-radius:50%;background:#0d7d8a;box-shadow:0 0 0 0 rgba(13,125,138,.55);animation:lvpulse 2s infinite}
+@keyframes lvpulse{0%{box-shadow:0 0 0 0 rgba(13,125,138,.55)}70%{box-shadow:0 0 0 7px rgba(13,125,138,0)}100%{box-shadow:0 0 0 0 rgba(13,125,138,0)}}
+</style>
+</head><body>
+<div class="wrap">
+
+<!-- ============ shared cross-page navigation ============ -->
+<nav class="nav">
+  <a href="hd_requests.html" class="on">HD Requests<span class="ns">TDEC · 2021–2025 + live recent-activity tabs</span></a>
+</nav>
+
+<header>
+<div class="tag">TDEC DIVISION OF WATER RESOURCES</div>
+<h1>Hydrologic Determination Requests Collected, 2021&ndash;2025</h1>
+<div class="sub">Five-year record of aquatic-feature evaluations from the TDEC point dataset &mdash; a leading indicator of stream &amp; wetland mitigation credit demand. <b>This dataset refreshes weekly.</b></div>
+</header>
+
+<div class="card">
+<h2>What This Map Shows</h2>
+<p>A <b>Hydrologic Determination (HD)</b> is TDEC's field ruling on whether a water feature on a property is a regulated <b>stream</b> or an unregulated <b>wet weather conveyance</b>. Developers request one before they build, so an HD is the earliest public signal that a parcel with aquatic features is headed toward disturbance &mdash; it typically <b>precedes an ARAP/&sect;401 permit by 6&ndash;18 months</b>.</p>
+<p>Every determination that carries coordinates is plotted individually as a <b>site dot</b> &mdash; click one for its <b>determination ID, property name, county, year, field office and coordinates</b>, plus a link back to the TDEC DataViewer. Pick a single <b>year tab</b> to see only that year's sites, or <b>5-Year Overall</b> to see all of them at once. Use <b>Show All Data</b> to keep every site visible while the shading still reflects the year you picked.</p>
+<p>The <b>Live</b> tabs &mdash; <b>Last 14 days</b>, <b>Last 30 days</b>, <b>Last 90 days</b> and <b>2026 year-to-date</b> &mdash; pull the <b>current</b> determination points straight from the TDEC service <b>the moment you open this page</b>, so they refresh on their own with no rebuild step. Dots are colored by how recently each determination was investigated, and the county / watershed shading and ranking table reflect the live window. On the <b>Last 14 days</b> and <b>Last 30 days</b> tabs, determinations whose report has been processed show a <b>teal ring</b> — click one to see the streams &amp; WWC identified on the property (length, Corps / TDEC classification, and start/end coordinates), drawn as segments on the map. (The Live tabs need internet; the historical year tabs stay embedded and work offline.)</p>
+<p>Switch between <b>By County</b> and <b>By Watershed</b> with the toggle above the map. In <b>County</b> view each county is shaded by its determination activity and the HUC8 watershed boundaries stay visible as outlines. In <b>Watershed</b> view the HUC8 basins are shaded (the units mitigation credits actually trade within) and county lines drop back to outlines. Zoom in to level&nbsp;15 and the boundaries hand off &mdash; individual parcels and site dots become the clickable layer, so you can read the exact property under a determination without selecting the whole county or watershed.</p>
+<div class="warn"><b>Read this before drawing credit conclusions.</b> This dataset counts <i>requests</i>, not acres. It carries no impact quantity, stream length or wetland acreage, and does not record whether a determination came back as a stream or a wet weather conveyance. It measures <b>where development pressure is landing on aquatic features</b> &mdash; a strong leading indicator of future credit demand, not a measurement of land altered. The HD data and county boundaries are embedded and work offline; <b>watershed boundaries stream live from ArcGIS Online and need internet</b>, and the parcel layer loads from the local <code>tn_parcels.pmtiles</code> (run <code>serve_tn_map.cmd</code> and open <code>http://localhost:8777/hd_requests.html</code>). <b>This TDEC dataset is designed to refresh weekly</b> from the latest export.</div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="card">
+<div class="ctl">
+<div class="yrs" id="yrs"></div>
+<div class="geo" id="geoTog">
+<button class="gb on" data-g="county">By County</button>
+<button class="gb" data-g="wshed">By Watershed</button>
+</div>
+<div class="mode" id="mode" style="display:none">
+<button class="mb on" data-m="vol">Volume</button>
+<button class="mb" data-m="chg">Change</button>
+</div>
+</div>
+<div class="mapbox"><div id="map"></div>
+<div class="lyr">
+<div class="lt">Reference Layers</div>
+<div class="grp">
+<label><input type="checkbox" id="ckSite" checked><span class="sd"></span> HD Sites</label>
+<div class="hint" id="siteHint">Individual determinations &middot; click for detail</div>
+</div>
+<div class="grp">
+<label><input type="checkbox" id="ckPcl"><span class="swp"></span> Property Parcels</label>
+<div class="hint" id="pclHint">Best viewed zoomed in &middot; 86 of 95 counties</div>
+</div>
+<div class="grp">
+<label><input type="checkbox" id="ckBig"><span class="swb"></span> Large Parcels (500+ ac)</label>
+<div class="hint" id="bigHint">Farms, forests &amp; government tracts</div>
+</div>
+</div>
+<div class="hov" id="hov"><div class="hn">Hover a county</div><div style="color:#7c8b97">&mdash;</div></div></div>
+<div class="leg" id="leg"></div>
+
+<div class="card" id="sumCard">
+<h2 id="sumh">Year Summary</h2>
+<div class="ys" id="ys"></div>
+<table><thead><tr id="th"></tr></thead><tbody id="tb"></tbody></table>
+</div>
+
+<div class="card" id="trajCard">
+<h2>Statewide Trajectory &amp; 2026 Outlook</h2>
+<div id="swy"></div>
+<div class="fc" id="fcb"></div>
+</div>
+</div>
+
+<!-- data (weekly-updating TDEC dataset) + shared component library -->
+<script src="tn_hd_data.js"></script>
+<script src="tn_hd_streams.js"></script>
+<script src="tn_bigparcels.js"></script>
+<script src="tn_shared.js"></script>
+<script src="tn_boundaries.js"></script>
+<script>
+/* =====================================================================
+   Page 2 — HD Requests Collected (TDEC point dataset, last 5 years).
+   Reuses the shared library (tn_shared.js) for the parcel engine,
+   formatters and watershed geometry. County/watershed choropleth,
+   stats, tables and trajectory are ported from the original app.
+   ===================================================================== */
+const C = D.counties, M = D.meta, YRS=[2021,2022,2023,2024,2025];
+const ALL='all';
+let yr = ALL, mode='vol', geo='county', showAllData=false;
+let pclMode=null, pclLyr=null, bigLyr=null, bigDotsLyr=null;
+const CLICK_ZOOM = 15;          // at/above this zoom, boundaries hand clicks to parcels + site dots
+const isAll = ()=> yr===ALL;
+
+/* ---- live "recent activity" mode state (see LIVE MODE block below) ---- */
+let liveMode=null;                    // null in historical mode; {key,lab,test} when a Live tab is active
+let liveSites=[], liveCounty={}, liveWshed={}, liveCC={}, liveWC={}, liveWName={};
+let liveMaxC=1, liveMaxW=1;
+let _liveAll=null, _liveErr=null, _liveLoading=false, _liveDataPromise=null, _liveFetchedAt=0;
+
+const map = L.map('map',{scrollWheelZoom:true}).setView([35.86,-86.3],7);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+ {attribution:'&copy; OpenStreetMap &copy; CARTO | Boundaries: TN GIS | Data: TDEC DWR',maxZoom:18,opacity:.55}).addTo(map);
+
+/* ---------- precomputed maxima for the choropleth ramps ---------- */
+const names=Object.keys(C);
+const maxV=Math.max(...names.map(n=>Math.max(...YRS.map(y=>C[n].yr[y]))));
+let maxUp=1,maxDn=1;
+names.forEach(n=>YRS.slice(1).forEach(y=>{const v=C[n].yoy[y];
+  if(v>maxUp)maxUp=v; if(-v>maxDn)maxDn=-v;}));
+names.forEach(n=>{const c=C[n]; c.net = c.yr[2025]-c.yr[2021];});
+let maxNU=1,maxND=1,maxTot=1;
+names.forEach(n=>{const c=C[n];
+  if(c.net>maxNU)maxNU=c.net; if(-c.net>maxND)maxND=-c.net;
+  if(c.total>maxTot)maxTot=c.total;});
+
+/* ================= County choropleth ================= */
+function fill(n){
+  if(liveMode) return liveFill(n);
+  const c=C[n];
+  if(!c) return '#f2f4f6';
+  if(mode==='vol'){
+    const v=isAll()?c.total:c.yr[yr], mx=isAll()?maxTot:maxV;
+    return v===0 ? '#f2f4f6' : ramp(BLU, Math.sqrt(v/mx));
+  }
+  if(isAll()){
+    if(c.total===0) return '#f2f4f6';
+    if(c.net>0) return ramp(GRN, Math.sqrt(c.net/maxNU));
+    if(c.net<0) return ramp(RED, Math.sqrt(-c.net/maxND));
+    return '#eceff2';
+  }
+  if(c.yr[yr]===0) return '#f2f4f6';
+  if(yr===2021) return ramp(BLU, Math.sqrt(c.yr[2021]/maxV));
+  const v=c.yoy[yr];
+  if(v>0) return ramp(GRN, Math.sqrt(v/maxUp));
+  if(v<0) return ramp(RED, Math.sqrt(-v/maxDn));
+  return '#eceff2';
+}
+/* counties step back when either parcel layer is on & we are zoomed in, so lines read */
+function pclOn(){ return document.getElementById('ckPcl').checked; }
+function anyPclOn(){ return document.getElementById('ckPcl').checked || document.getElementById('ckBig').checked; }
+function cOpacity(){ return (anyPclOn() && map.getZoom()>=PCL_MINZ) ? 0 : .87; }
+
+// ----- county layer: filled choropleth in County view, thin outline in Watershed view -----
+function countyChoro(f){ const n=f.properties.COUNTY;
+  const faded = anyPclOn() && map.getZoom()>=PCL_MINZ;
+  return {fillColor:fill(n),weight:faded?0:1,color:'#fff',fillOpacity:cOpacity(),opacity:faded?0:1}; }
+function countyOutline(f){ return {fill:false,weight:1,color:'#9aa7b2',opacity:.8}; }
+function countyStyle(f){ return geo==='county' ? countyChoro(f) : countyOutline(f); }
+
+const gj=L.geoJSON(GEO,{style:countyStyle,onEachFeature:(f,l)=>{
+  const n=f.properties.COUNTY;
+  l.on({
+    mouseover:e=>{ if(geo!=='county') return;
+      e.target.setStyle({weight:2.6,color:'#0f3245',fillOpacity:Math.min(.95,cOpacity()+.14)});
+      if(!pclOn()) e.target.bringToFront(); hov(n); },
+    mouseout:e=>{ e.target.setStyle(countyStyle(e.target.feature)); },
+    click:e=>{ if(geo!=='county') return;
+      if(map.getZoom()>=CLICK_ZOOM) return;                 // hand off to parcels/sites
+      if(pclOn() && pclMode==='local' && map.getZoom()>=PCL_MINZ) return;
+      if(liveMode){ pop(n, e.latlng); return; }
+      if(C[n]) pop(n, e.latlng); }
+  });
+}}).addTo(map);
+
+function hov(n){
+  if(liveMode) return liveHov(n);
+  const c=C[n], h=document.getElementById('hov');
+  if(!c){ h.innerHTML='<div class="hn">'+n+' County</div><div style="color:#7c8b97">No determinations 2021&ndash;2025</div>'; return; }
+  if(isAll()){
+    const nt = c.net>0?'<span class="up">+'+c.net+' vs 2021</span>':(c.net<0?'<span class="dn">'+c.net+' vs 2021</span>':'<span class="fl">net flat</span>');
+    const tr = c.slope>0.5?'<span class="up">&#9650; +'+c.slope+'/yr</span>':(c.slope<-0.5?'<span class="dn">&#9660; '+c.slope+'/yr</span>':'<span class="fl">&#9644; flat</span>');
+    h.innerHTML='<div class="hn">'+n+' County</div><div style="font-size:19px;font-weight:700;color:#0f3245">'+c.total+'</div>'+
+      '<div style="font-size:11.5px;color:#7c8b97;margin-bottom:2px">determinations, 2021&ndash;2025</div>'+
+      '<div style="font-weight:600">'+nt+'</div><div style="font-weight:600;margin-top:1px">'+tr+'</div>';
+    return;
+  }
+  const yo=c.yoy[yr];
+  const t = yr===2021?'<span style="color:#7c8b97">baseline</span>':
+    (yo>0?'<span class="up">+'+yo+' vs '+(yr-1)+'</span>':(yo<0?'<span class="dn">'+yo+' vs '+(yr-1)+'</span>':'<span class="fl">no change</span>'));
+  h.innerHTML='<div class="hn">'+n+' County</div><div style="font-size:19px;font-weight:700;color:#0f3245">'+c.yr[yr]+'</div>'+
+    '<div style="font-size:11.5px;color:#7c8b97;margin-bottom:2px">determinations in '+yr+'</div><div style="font-weight:600">'+t+'</div>';
+}
+
+/* ================= Watershed (HUC8) layer ================= */
+const WCBY={}; WSHED.forEach(w=>WCBY[String(w.huc)]=w);
+let wMaxV=1,wMaxUp=1,wMaxDn=1,wMaxNU=1,wMaxND=1,wMaxTot=1;
+WSHED.forEach(w=>{
+  if(w.tot>wMaxTot)wMaxTot=w.tot;
+  if(w.net>wMaxNU)wMaxNU=w.net; if(-w.net>wMaxND)wMaxND=-w.net;
+  w.y.forEach(v=>{ if(v>wMaxV)wMaxV=v; });
+  for(let i=1;i<5;i++){ const d=w.y[i]-w.y[i-1]; if(d>wMaxUp)wMaxUp=d; if(-d>wMaxDn)wMaxDn=-d; }
+});
+const WYR=[0,0,0,0,0]; WSHED.forEach(w=>w.y.forEach((v,i)=>WYR[i]+=v));
+const WSUM=WYR.reduce((a,b)=>a+b,0);
+const WPOLYS=87;
+function wFill(w){
+  if(!w||w.tot===0) return '#f2f4f6';
+  const i=YRS.indexOf(yr);
+  if(mode==='vol'){
+    const v=isAll()?w.tot:w.y[i], mx=isAll()?wMaxTot:wMaxV;
+    return v===0?'#f2f4f6':ramp(BLU,Math.sqrt(v/mx));
+  }
+  if(isAll()){
+    if(w.net>0) return ramp(GRN, Math.sqrt(w.net/wMaxNU));
+    if(w.net<0) return ramp(RED, Math.sqrt(-w.net/wMaxND));
+    return '#eceff2';
+  }
+  if(w.y[i]===0) return '#f2f4f6';
+  if(yr===2021) return ramp(BLU, Math.sqrt(w.y[0]/wMaxV));
+  const d=w.y[i]-w.y[i-1];
+  if(d>0) return ramp(GRN, Math.sqrt(d/wMaxUp));
+  if(d<0) return ramp(RED, Math.sqrt(-d/wMaxDn));
+  return '#eceff2';
+}
+// watershed layer: filled (LIGHT, semi-transparent) in Watershed view, dashed outline in County view
+function wsChoro(f){ const huc=wsHucOf(f);
+  if(liveMode){ const v=liveWshed[huc]||0;
+    return {color:'#ffffff',weight:1,opacity:.9,fill:true,fillColor:v?ramp(BLU,Math.sqrt(v/liveMaxW)):'#f2f4f6',fillOpacity:v?.55:.16}; }
+  const w=WCBY[huc];
+  return {color:'#ffffff',weight:1,opacity:.9,fill:true,fillColor:w?wFill(w):'#f2f4f6',fillOpacity:(w&&w.tot)?.5:.16}; }
+function wsOutline(f){ return {fill:false,weight:1.4,color:'#0d6b8a',opacity:.75,dashArray:'6,4'}; }
+function wsStyleFor(f){ return geo==='wshed' ? wsChoro(f) : wsOutline(f); }
+
+let wsLyr=null, wsBuilding=false;
+function wsEach(f,l){
+  const nm=wsNameOf(f), w=WCBY[wsHucOf(f)];
+  l.bindTooltip('<b>'+esc(nm)+'</b>'+(w?'':' · no HD sites'),{sticky:true,className:'pclbox'});
+  l.on('click',()=>{ if(geo!=='wshed') return;
+    if(map.getZoom()>=CLICK_ZOOM) return;                   // hand off to parcels/sites
+    const ll=l.getBounds().getCenter();
+    if(liveMode){ liveWPop(wsHucOf(f), ll); return; }
+    if(w) wPop(w,ll); });
+  l.on('mouseover',e=>{ if(geo==='wshed') e.target.setStyle({weight:2.4,color:'#0f3245'}); });
+  l.on('mouseout', e=>e.target.setStyle(wsStyleFor(f)));
+}
+function ensureWs(){
+  if(wsLyr){ if(!map.hasLayer(wsLyr)) map.addLayer(wsLyr); return; }
+  if(wsBuilding) return;
+  wsBuilding=true;
+  fetchWatershedGeom().then(d=>{
+    wsLyr=L.geoJSON(d,{style:wsStyleFor,onEachFeature:wsEach});
+    map.addLayer(wsLyr); wsBuilding=false;
+    restyleBoundaries();               // now that geometry exists, order + pointer-events
+    if(liveMode){ deriveLive(liveMode.key); refresh(); }   // assign live sites to watersheds now geometry exists
+  }).catch(()=>{ wsBuilding=false; });  // offline -> no watershed geometry, county view still works
+}
+function wPop(w,ll){
+  const yi=YRS.indexOf(yr), mx=Math.max.apply(null,w.y)||1;
+  const sp=w.y.map((v,i)=>'<div class="sb" style="height:'+Math.max(3,v/mx*34)+'px;opacity:'+(isAll()||i===yi?1:.35)+'"></div>').join('');
+  const head='<div class="pt">'+w.name+'</div><div class="spark">'+sp+'</div>'
+    +'<div style="font-size:10px;color:#94a2ae;display:flex;justify-content:space-between;margin-bottom:7px"><span>2021</span><span>2025</span></div>';
+  const trend='<div class="pr"><span>Trend</span><span>'+(w.slope>0?'+':'')+w.slope+'/yr (r&sup2;='+w.r2+')</span></div>';
+  const score='<div class="pr"><span>Pressure score</span><span>'+w.score+'</span></div>';
+  const proj='<div class="pr" style="border-top:1px solid #e6eaee;margin-top:5px;padding-top:5px"><span>2026 projection</span><span>'+w.fc+' <span style="color:#94a2ae;font-weight:400">('+w.fclo+'&ndash;'+w.fchi+')</span></span></div>';
+  let body;
+  if(isAll()){
+    const nt=w.net>0?'<span style="color:#1a7f4b">+'+w.net+'</span>':(w.net<0?'<span style="color:#b8342a">'+w.net+'</span>':'0');
+    const pt=(w.pct===null||w.pct===undefined)?'&mdash;':(w.pct>0?'<span style="color:#1a7f4b">+'+w.pct+'%</span>':'<span style="color:#b8342a">'+w.pct+'%</span>');
+    body='<div class="pr"><span>5-year total</span><span>'+w.tot+'</span></div>'
+      +'<div class="pr"><span>2021 &rarr; 2025</span><span>'+w.y[0]+' &rarr; '+w.y[4]+'</span></div>'
+      +'<div class="pr"><span>Net change</span><span>'+nt+'</span></div>'
+      +'<div class="pr"><span>Change, early vs recent</span><span>'+pt+'</span></div>'+trend+score+proj;
+  } else {
+    const v=w.y[yi], d=yi>0?w.y[yi]-w.y[yi-1]:null;
+    const yt=yr===2021?'&mdash; (baseline)':(d>0?'<span style="color:#1a7f4b">+'+d+'</span>':(d<0?'<span style="color:#b8342a">'+d+'</span>':'0'));
+    body='<div class="pr"><span>'+yr+' determinations</span><span>'+v+'</span></div>'
+      +'<div class="pr"><span>Change vs prior yr</span><span>'+yt+'</span></div>'
+      +'<div class="pr"><span>5-year total</span><span>'+w.tot+'</span></div>'+trend+score+proj;
+  }
+  L.popup().setLatLng(ll||[w.lat,w.lon]).setContent(head+body).openOn(map);
+}
+function wFly(huc){ const w=WCBY[huc]; if(!w||!w.lat) return; map.flyTo([w.lat,w.lon],9,{duration:.8}); setTimeout(()=>wPop(w),850); }
+
+/* ================= Individual HD sites ================= */
+const siteLyr = L.layerGroup().addTo(map);
+const hdStreamLyr = L.layerGroup().addTo(map);   // drawn STR/WWC segments for enriched live sites
+const YCOL = {2021:'#1a56db', 2022:'#111111', 2023:'#f2c200', 2024:'#ec4899', 2025:'#b8342a'};
+function siteRadius(){ const z=map.getZoom();
+  return z>=13 ? 7 : z>=11 ? 5 : z>=9 ? 3.6 : 2.6; }
+function drawSites(){
+  if(liveMode) return liveDrawSites();
+  siteLyr.clearLayers();
+  if(!document.getElementById('ckSite').checked) return;
+  const r = siteRadius();
+  let n = 0;
+  SITES.forEach(s=>{
+    const [id,lat,lon,y,cty,prop,loc,efo] = s;
+    if(!isAll() && !showAllData && y!==yr) return;      // year tab filters; Show All / Overall bypass
+    n++;
+    L.circleMarker([lat,lon], {
+      radius:r, fillColor: YCOL[y] || '#e8850c',
+      color:'#fff', weight:1.1, opacity:.95, fillOpacity:.9, pane:'markerPane'
+    }).addTo(siteLyr)
+     .bindPopup(
+      '<div class="sitebox">'+
+      '<div class="sid">HD ID '+id+'</div>'+
+      '<div class="sn">'+esc(prop)+'</div>'+
+      '<div class="sr"><span>County</span><span>'+cty+'</span></div>'+
+      (loc?'<div class="sr"><span>Location</span><span>'+esc(loc)+'</span></div>':'')+
+      '<div class="sr"><span>Determination</span><span>'+y+'</span></div>'+
+      (efo?'<div class="sr"><span>Field office</span><span>'+efo+'</span></div>':'')+
+      '<div class="sr"><span>Coordinates</span><span>'+lat.toFixed(4)+', '+lon.toFixed(4)+'</span></div>'+
+      '<a href="https://dataviewers.tdec.tn.gov/dataviewers/f?p=2005:34341:::NO::P34341_DETERMINATION_ID:'+id+'" target="_blank">Open record in TDEC DataViewer &rarr;</a>'+
+      '</div>', {maxWidth:280});
+  });
+  const scope = showAllData ? ' · all years' : (isAll()?' · 2021–2025':' in '+yr);
+  setHint('siteHint', n.toLocaleString()+' site'+(n===1?'':'s')+scope+' · click for detail');
+}
+document.getElementById('ckSite').onchange = ()=>{ drawSites(); drawDots(); legend(); };
+map.on('zoomend', drawSites);
+
+const dots=L.layerGroup().addTo(map);
+function drawDots(){
+  if(liveMode) return liveDrawDots();
+  dots.clearLayers();
+  if(document.getElementById('ckSite').checked) return;
+  if(geo==='wshed'){ wDrawDots(); return; }
+  names.forEach(n=>{const c=C[n];
+    const v = isAll()? c.total : c.yr[yr];
+    const mx= isAll()? maxTot  : maxV;
+    if(v===0)return;
+    L.circleMarker([c.lat,c.lon],{radius:3+Math.sqrt(v/mx)*12,fillColor:trendColor(c.slope),
+      color:'#fff',weight:1.2,opacity:.95,fillOpacity:.82,interactive:false}).addTo(dots);});
+}
+function wDrawDots(){
+  dots.clearLayers();
+  if(document.getElementById('ckSite').checked) return;
+  const i=YRS.indexOf(yr);
+  WSHED.forEach(w=>{ if(!w.lat) return; const v=isAll()?w.tot:w.y[i], mx=isAll()?wMaxTot:wMaxV; if(v===0)return;
+    L.circleMarker([w.lat,w.lon],{radius:3+Math.sqrt(v/mx)*12,fillColor:trendColor(w.slope),color:'#fff',weight:1.2,opacity:.95,fillOpacity:.82,interactive:false}).addTo(dots); });
+}
+function pop(n,ll){
+  if(liveMode) return livePop(n,ll);
+  const c=C[n],yo=c.yoy[yr];
+  const mx=Math.max(...YRS.map(y=>c.yr[y]))||1;
+  const sp=YRS.map(y=>'<div class="sb" style="height:'+Math.max(3,c.yr[y]/mx*34)+'px;opacity:'+(isAll()||y==yr?1:.35)+'"></div>').join('');
+  const head='<div class="pt">'+n+' County</div><div class="spark">'+sp+'</div>'+
+   '<div style="font-size:10px;color:#94a2ae;display:flex;justify-content:space-between;margin-bottom:7px"><span>2021</span><span>2025</span></div>';
+  if(isAll()){
+    const nt=c.net>0?'<span style="color:#1a7f4b">+'+c.net+'</span>':(c.net<0?'<span style="color:#b8342a">'+c.net+'</span>':'0');
+    const pt=c.pct===null?'&mdash;':(c.pct>0?'<span style="color:#1a7f4b">+'+c.pct+'%</span>':'<span style="color:#b8342a">'+c.pct+'%</span>');
+    L.popup().setLatLng(ll||[c.lat,c.lon]).setContent(head+
+     '<div class="pr"><span>5-year total</span><span>'+c.total+'</span></div>'+
+     '<div class="pr"><span>2021 &rarr; 2025</span><span>'+c.yr[2021]+' &rarr; '+c.yr[2025]+'</span></div>'+
+     '<div class="pr"><span>Net change</span><span>'+nt+'</span></div>'+
+     '<div class="pr"><span>Change, early vs recent</span><span>'+pt+'</span></div>'+
+     '<div class="pr"><span>Trend</span><span>'+(c.slope>0?'+':'')+c.slope+'/yr (r&sup2;='+c.r2+')</span></div>'+
+     '<div class="pr"><span>Pressure score</span><span>'+c.score+'</span></div>'+
+     '<div class="pr" style="border-top:1px solid #e6eaee;margin-top:5px;padding-top:5px"><span>2026 projection</span><span>'+c.fc+' <span style="color:#94a2ae;font-weight:400">('+c.fclo+'&ndash;'+c.fchi+')</span></span></div>').openOn(map);
+    return;
+  }
+  const v=c.yr[yr];
+  const yt = yr===2021?'&mdash; (baseline)':(yo>0?'<span style="color:#1a7f4b">+'+yo+'</span>':(yo<0?'<span style="color:#b8342a">'+yo+'</span>':'0'));
+  L.popup().setLatLng(ll||[c.lat,c.lon]).setContent(head+
+   '<div class="pr"><span>'+yr+' determinations</span><span>'+v+'</span></div>'+
+   '<div class="pr"><span>Change vs prior yr</span><span>'+yt+'</span></div>'+
+   '<div class="pr"><span>5-year total</span><span>'+c.total+'</span></div>'+
+   '<div class="pr"><span>Trend</span><span>'+(c.slope>0?'+':'')+c.slope+'/yr (r&sup2;='+c.r2+')</span></div>'+
+   '<div class="pr"><span>Pressure score</span><span>'+c.score+'</span></div>'+
+   '<div class="pr" style="border-top:1px solid #e6eaee;margin-top:5px;padding-top:5px"><span>2026 projection</span><span>'+c.fc+' <span style="color:#94a2ae;font-weight:400">('+c.fclo+'&ndash;'+c.fchi+')</span></span></div>').openOn(map);
+}
+
+function siteNote(){
+  const on=document.getElementById('ckSite').checked;
+  const unit=(geo==='wshed'?'watershed':'county');
+  if(!on) return '<b>Dots: size = volume, color = trend</b> (<span style="color:#1a7f4b">&#9650; rising</span> &middot; <span style="color:#b8342a">&#9660; falling</span>)';
+  if(showAllData) return '<b>All determinations shown</b>, colored by year: '+
+    [2021,2022,2023,2024,2025].map(y=>'<span style="color:'+YCOL[y]+';font-weight:700">'+y+'</span>').join(' ');
+  if(isAll()) return '<b>Each dot = one determination</b>, colored by year: '+
+    [2021,2022,2023,2024,2025].map(y=>'<span style="color:'+YCOL[y]+';font-weight:700">'+y+'</span>').join(' ');
+  return '<b>Each dot = one determination issued in '+yr+'</b>';
+}
+function legend(){
+  if(liveMode) return liveLegend();
+  const L1=document.getElementById('leg');
+  const unit=(geo==='wshed'?'watershed':'county');
+  const other=(geo==='wshed'
+    ? '<div class="li"><span class="swco"></span> County outline (not filled)</div>'
+    : '<div class="li"><span class="swws"></span> Watershed outline (not filled)</div>');
+  const dotsOff=!document.getElementById('ckSite').checked;
+  const trendKey=dotsOff?'<div class="li"><span style="color:#41525f;font-weight:600">'+unit[0].toUpperCase()+unit.slice(1)+' trend:</span>&nbsp;'+
+    '<span style="color:#1a7f4b;font-weight:700">&#9679;</span> rising &nbsp;'+
+    '<span style="color:#b8342a;font-weight:700">&#9679;</span> falling &nbsp;'+
+    '<span style="color:#7c8b97;font-weight:700">&#9679;</span> flat</div>':'';
+  if(mode==='vol'){
+    L1.innerHTML='<div class="li"><span>Fewer</span><div class="ramp">'+BLU.map(c=>'<div style="background:'+c+'"></div>').join('')+'</div><span>More determinations</span></div>'+
+     '<div class="li"><div class="sw" style="background:#f2f4f6"></div>No activity</div>'+other+trendKey+
+     '<div class="li" style="margin-left:auto">Shading = '+(isAll()?'5-yr total':yr+' count')+' by '+unit+' &nbsp;&middot;&nbsp; '+siteNote()+'</div>';
+    return;
+  }
+  if(isAll()){
+    L1.innerHTML='<div class="li"><span>Net decrease</span><div class="ramp">'+RED.slice().reverse().map(c=>'<div style="background:'+c+'"></div>').join('')+'</div></div>'+
+     '<div class="li"><div class="sw" style="background:#eceff2"></div>Net flat</div>'+
+     '<div class="li"><div class="ramp">'+GRN.map(c=>'<div style="background:'+c+'"></div>').join('')+'</div><span>Net increase</span></div>'+
+     '<div class="li"><div class="sw" style="background:#f2f4f6"></div>No activity</div>'+other+
+     '<div class="li" style="margin-left:auto">Shading = net change 2021&rarr;2025 &nbsp;&middot;&nbsp; '+siteNote()+'</div>';
+    return;
+  }
+  if(yr!==2021){
+    L1.innerHTML='<div class="li"><span>Decrease</span><div class="ramp">'+RED.slice().reverse().map(c=>'<div style="background:'+c+'"></div>').join('')+'</div></div>'+
+     '<div class="li"><div class="sw" style="background:#eceff2"></div>No change</div>'+
+     '<div class="li"><div class="ramp">'+GRN.map(c=>'<div style="background:'+c+'"></div>').join('')+'</div><span>Increase</span></div>'+
+     '<div class="li"><div class="sw" style="background:#f2f4f6"></div>No activity</div>'+other+
+     '<div class="li" style="margin-left:auto">'+siteNote()+'</div>';
+  } else {
+    L1.innerHTML='<div class="li"><span>Fewer</span><div class="ramp">'+BLU.map(c=>'<div style="background:'+c+'"></div>').join('')+'</div><span>More determinations</span></div>'+
+     '<div class="li"><div class="sw" style="background:#f2f4f6"></div>No activity</div>'+other+
+     '<div class="li" style="color:#95a3af"><i>2021 is the baseline &mdash; shown by volume</i></div>'+
+     '<div class="li" style="margin-left:auto">'+siteNote()+'</div>';
+  }
+}
+
+/* ================= stats + tables (county / watershed) ================= */
+function stats(){
+  const tot=YRS.reduce((a,y)=>a+M.statewide[y],0);
+  if(isAll()){
+    let up=0,dn=0,fl=0,zero=0;
+    names.forEach(n=>{const c=C[n];
+      if(c.total===0){zero++;return;}
+      if(c.net>0)up++; else if(c.net<0)dn++; else fl++;});
+    zero += 95 - names.length;
+    const g=names.filter(n=>C[n].slope>0.5).length;
+    document.getElementById('stats').innerHTML=
+     '<div class="st"><div class="k">5-Yr Statewide Total</div><div class="v">'+tot.toLocaleString()+'</div><div class="d up">+34.8% since 2021</div></div>'+
+     '<div class="st"><div class="k">Net Increase</div><div class="v up">'+up+'</div><div class="d fl">counties, 2021&rarr;2025</div></div>'+
+     '<div class="st"><div class="k">Net Decrease</div><div class="v dn">'+dn+'</div><div class="d fl">counties, 2021&rarr;2025</div></div>'+
+     '<div class="st"><div class="k">Net Flat / None</div><div class="v fl">'+(fl+zero)+'</div><div class="d fl">of 95 counties</div></div>'+
+     '<div class="st"><div class="k">Rising Trend</div><div class="v up">'+g+'</div><div class="d fl">slope &gt; +0.5/yr</div></div>';
+    return;
+  }
+  const cur=M.statewide[yr],pi=YRS.indexOf(yr);
+  const pv=pi>0?M.statewide[YRS[pi-1]]:null;
+  const dv=pv?cur-pv:null, dp=pv?((cur-pv)/pv*100).toFixed(1):null;
+  let up=0,dn=0,fl=0;
+  names.forEach(n=>{ if(yr===2021){fl++;return;} const v=C[n].yoy[yr];
+    if(v>0)up++; else if(v<0)dn++; else fl++; });
+  const dc=dv===null?'fl':(dv>0?'up':(dv<0?'dn':'fl'));
+  const dt=dv===null?'baseline year':((dv>0?'+':'')+dv+' ('+(dv>0?'+':'')+dp+'%)');
+  document.getElementById('stats').innerHTML=
+   '<div class="st"><div class="k">'+yr+' Determinations</div><div class="v">'+cur+'</div><div class="d '+dc+'">'+dt+'</div></div>'+
+   '<div class="st"><div class="k">Counties Increasing</div><div class="v up">'+up+'</div><div class="d fl">vs prior year</div></div>'+
+   '<div class="st"><div class="k">Counties Decreasing</div><div class="v dn">'+dn+'</div><div class="d fl">vs prior year</div></div>'+
+   '<div class="st"><div class="k">Flat / No Activity</div><div class="v fl">'+fl+'</div><div class="d fl">of 95 counties</div></div>'+
+   '<div class="st"><div class="k">5-Yr Statewide Total</div><div class="v">'+tot.toLocaleString()+'</div><div class="d up">+34.8% since 2021</div></div>';
+}
+function wStats(){
+  if(isAll()){
+    let up=0,dn=0,fl=0; WSHED.forEach(w=>{ if(w.net>0)up++; else if(w.net<0)dn++; else fl++; });
+    const zero=WPOLYS-WSHED.length, g=WSHED.filter(w=>w.slope>0.5).length;
+    document.getElementById('stats').innerHTML=
+     '<div class="st"><div class="k">5-Yr Mapped Sites</div><div class="v">'+WSUM.toLocaleString()+'</div><div class="d fl">geolocated determinations</div></div>'+
+     '<div class="st"><div class="k">Net Increase</div><div class="v up">'+up+'</div><div class="d fl">watersheds, 2021&rarr;2025</div></div>'+
+     '<div class="st"><div class="k">Net Decrease</div><div class="v dn">'+dn+'</div><div class="d fl">watersheds, 2021&rarr;2025</div></div>'+
+     '<div class="st"><div class="k">Net Flat / None</div><div class="v fl">'+(fl+zero)+'</div><div class="d fl">of '+WPOLYS+' watersheds</div></div>'+
+     '<div class="st"><div class="k">Rising Trend</div><div class="v up">'+g+'</div><div class="d fl">slope &gt; +0.5/yr</div></div>';
+    return;
+  }
+  const i=YRS.indexOf(yr), cur=WYR[i], pv=i>0?WYR[i-1]:null;
+  const dv=pv!==null?cur-pv:null, dp=pv?((cur-pv)/pv*100).toFixed(1):null;
+  let up=0,dn=0,fl=0;
+  WSHED.forEach(w=>{ if(yr===2021){fl++;return;} const d=w.y[i]-w.y[i-1]; if(d>0)up++; else if(d<0)dn++; else fl++; });
+  const dc=dv===null?'fl':(dv>0?'up':(dv<0?'dn':'fl'));
+  const dt=dv===null?'baseline year':((dv>0?'+':'')+dv+' ('+(dv>0?'+':'')+dp+'%)');
+  document.getElementById('stats').innerHTML=
+   '<div class="st"><div class="k">'+yr+' Mapped Sites</div><div class="v">'+cur+'</div><div class="d '+dc+'">'+dt+'</div></div>'+
+   '<div class="st"><div class="k">Watersheds Increasing</div><div class="v up">'+up+'</div><div class="d fl">vs prior year</div></div>'+
+   '<div class="st"><div class="k">Watersheds Decreasing</div><div class="v dn">'+dn+'</div><div class="d fl">vs prior year</div></div>'+
+   '<div class="st"><div class="k">Flat / No Activity</div><div class="v fl">'+fl+'</div><div class="d fl">of '+WSHED.length+' active</div></div>'+
+   '<div class="st"><div class="k">5-Yr Mapped Sites</div><div class="v">'+WSUM.toLocaleString()+'</div><div class="d fl">2021&rarr;2025</div></div>';
+}
+
+const NARR={
+ 2021:'<b>Baseline year &mdash; 592 determinations.</b> The lowest volume in the window and the reference point for everything that follows. Activity is concentrated in the established growth corridors: Williamson (57), Davidson (53), and Hamilton (47) alone account for roughly a quarter of all statewide determinations. Knox sits at just 25.',
+ 2022:'<b>The step change &mdash; 778 determinations, up 31.4%.</b> This is the single largest year-over-year jump in the dataset and the event that reset the baseline. The map goes broadly green: the surge is statewide rather than local, which points to a common driver (post-pandemic development and permitting throughput) rather than any one megaproject. Davidson jumps to 77, Hamilton to 69, Sumner nearly triples to 31.',
+ 2023:'<b>Consolidation &mdash; 688 determinations, down 11.6%.</b> The only down year in the window, and the map turns substantially red. Best read as the 2022 spike giving back ground rather than a genuine reversal &mdash; 2023 still sits well above 2021. Williamson slips to 47; Putnam and Bradley pull back sharply. Notably, Rutherford and Knox <i>stay green</i> against the statewide dip, the first clear sign their trends are structurally different.',
+ 2024:'<b>Recovery &mdash; 775 determinations, up 12.6%.</b> Volume returns to the 2022 plateau, but the geography has shifted. Knox leaps from 27 to 42 &mdash; its biggest single-year gain &mdash; and Rutherford pushes to 53, overtaking several larger counties. Sevier nearly triples to 23. The green is migrating east and outward from the urban cores.',
+ 2025:'<b>Peak &mdash; 798 determinations, the highest in the record.</b> Statewide activity is up 34.8% from 2021. Davidson (78) and Hamilton (64) hold the top spots on volume, but the momentum belongs to Knox (49, its highest ever) and Rutherford (51). Williamson, despite leading the five-year total, finishes at 60 &mdash; effectively flat against its 2021 mark of 57, a strong signal that its aquatic-feature pressure has plateaued.'
+};
+const NARR_ALL='<b>3,631 determinations across five years, up 34.8% from 2021 to 2025.</b> This view collapses the whole period into one picture: shading shows each county&rsquo;s <b>net change from 2021 to 2025</b> (green = ended higher, red = ended lower), and the dot inside it is sized by <b>cumulative five-year volume</b>. Together they separate the two questions that matter for credit siting &mdash; <i>where is the activity</i> (dot size) and <i>where is it going</i> (color).'+
+'<br><br>The headline: <b>the statewide total is not a smooth climb.</b> It stepped up sharply in 2022, dipped in 2023, and has been range-bound between 688 and 798 ever since. Read the 34.8% as a one-time reset to a higher plateau, not an ongoing surge.'+
+'<br><br><b>The divergence underneath is the real story.</b> <b>Knox</b> (+6.1/yr, r&sup2;=0.84) and <b>Rutherford</b> (+4.6/yr, r&sup2;=0.88) are the only large counties with statistically clean upward trends &mdash; and both held their gains through the 2023 statewide dip. Meanwhile <b>Williamson</b> has the largest five-year total in the state (292) but is essentially <b>flat</b> (+0.8/yr, 57&rarr;60). <b>Rank by volume and you site credits in Williamson; rank by trend and you site them in Knox and Rutherford.</b>';
+
+function table(){
+  const tb=document.getElementById('tb');
+  if(isAll()){
+    document.getElementById('sumh').textContent='5-Year Overall Summary (2021–2025)';
+    document.getElementById('ys').innerHTML='<h3>2021&ndash;2025</h3><p>'+NARR_ALL+'</p>';
+    const rows=names.map(n=>({n,t:C[n].total,net:C[n].net,s:C[n].slope,r2:C[n].r2,sc:C[n].score,fc:C[n].fc}))
+     .filter(r=>r.t>0).sort((a,b)=>b.sc-a.sc).slice(0,15);
+    const mx=Math.max(...rows.map(r=>r.t));
+    tb.innerHTML=rows.map(r=>{
+     const nt=r.net>0?'<span class="chg up">+'+r.net+'</span>':(r.net<0?'<span class="chg dn">'+r.net+'</span>':'<span class="chg fl">0</span>');
+     const tr=r.s>0.5?'<span class="up">&#9650; +'+r.s.toFixed(1)+'</span>':(r.s<-0.5?'<span class="dn">&#9660; '+r.s.toFixed(1)+'</span>':'<span class="fl">&#9644; '+r.s.toFixed(1)+'</span>');
+     return '<tr onclick="fly(\''+r.n+'\')"><td><b>'+r.n+'</b></td><td class="n">'+r.t+'</td>'+
+      '<td><div class="bar" style="width:'+(r.t/mx*100)+'%"></div></td><td class="n">'+nt+'</td>'+
+      '<td class="n">'+tr+' <span style="color:#a8b4be;font-size:11.5px">r&sup2;='+r.r2.toFixed(2)+'</span></td>'+
+      '<td class="n"><b>'+r.sc.toFixed(1)+'</b></td><td class="n">'+r.fc+'</td></tr>';}).join('');
+    hdr(['County','5-Yr Total','Volume','Net Chg 21&rarr;25','Trend / yr','Pressure','2026 Proj.']);
+    return;
+  }
+  document.getElementById('sumh').textContent=yr+' Year Summary';
+  document.getElementById('ys').innerHTML='<h3>'+yr+'</h3><p>'+NARR[yr]+'</p>';
+  const rows=names.map(n=>({n,v:C[n].yr[yr],c:C[n].yoy[yr],t:C[n].total,s:C[n].slope}))
+   .filter(r=>r.v>0).sort((a,b)=>b.v-a.v).slice(0,15);
+  const mx=rows[0].v;
+  tb.innerHTML=rows.map(r=>{
+   const ct=yr===2021?'<span style="color:#98a6b2">&mdash;</span>':
+    (r.c>0?'<span class="chg up">+'+r.c+'</span>':(r.c<0?'<span class="chg dn">'+r.c+'</span>':'<span class="chg fl">0</span>'));
+   const tr=r.s>0.5?'<span class="up">&#9650; '+r.s.toFixed(1)+'</span>':(r.s<-0.5?'<span class="dn">&#9660; '+r.s.toFixed(1)+'</span>':'<span class="fl">&#9644; '+r.s.toFixed(1)+'</span>');
+   return '<tr onclick="fly(\''+r.n+'\')"><td><b>'+r.n+'</b></td><td class="n">'+r.v+'</td>'+
+    '<td><div class="bar" style="width:'+(r.v/mx*100)+'%"></div></td><td class="n">'+ct+'</td>'+
+    '<td class="n">'+r.t+'</td><td class="n">'+tr+'</td></tr>';}).join('');
+  hdr(['County','Determinations','Volume','Change vs Prior Yr','5-Yr Total','Trend']);
+}
+function wTable(){
+  const tb=document.getElementById('tb');
+  if(isAll()){
+    document.getElementById('sumh').textContent='5-Year Overall by Watershed (2021–2025)';
+    document.getElementById('ys').innerHTML='<h3>2021–2025 · by watershed</h3><p>The same <b>'+WSUM.toLocaleString()+'</b> geolocated HD determinations, regrouped into the <b>HUC8 basins</b> they fall in (each site assigned by point-in-polygon). Ranked by development-pressure score — recent volume plus upward trend. Watersheds are the units mitigation credits actually trade within.</p>';
+    const rows=WSHED.map(w=>({n:w.name,huc:w.huc,t:w.tot,net:w.net,s:w.slope,r2:w.r2,sc:w.score,fc:w.fc})).filter(r=>r.t>0).sort((a,b)=>b.sc-a.sc).slice(0,15);
+    const mx=Math.max.apply(null,rows.map(r=>r.t));
+    tb.innerHTML=rows.map(r=>{
+     const nt=r.net>0?'<span class="chg up">+'+r.net+'</span>':(r.net<0?'<span class="chg dn">'+r.net+'</span>':'<span class="chg fl">0</span>');
+     const tr=r.s>0.5?'<span class="up">&#9650; +'+r.s.toFixed(1)+'</span>':(r.s<-0.5?'<span class="dn">&#9660; '+r.s.toFixed(1)+'</span>':'<span class="fl">&#9644; '+r.s.toFixed(1)+'</span>');
+     return '<tr onclick="wFly(\''+r.huc+'\')"><td><b>'+r.n+'</b></td><td class="n">'+r.t+'</td>'+
+      '<td><div class="bar" style="width:'+(r.t/mx*100)+'%"></div></td><td class="n">'+nt+'</td>'+
+      '<td class="n">'+tr+' <span style="color:#a8b4be;font-size:11.5px">r&sup2;='+r.r2.toFixed(2)+'</span></td>'+
+      '<td class="n"><b>'+r.sc.toFixed(1)+'</b></td><td class="n">'+r.fc+'</td></tr>';}).join('');
+    hdr(['Watershed (HUC8)','5-Yr Total','Volume','Net Chg 21&rarr;25','Trend / yr','Pressure','2026 Proj.']);
+    return;
+  }
+  document.getElementById('sumh').textContent=yr+' Watershed Summary';
+  document.getElementById('ys').innerHTML='<h3>'+yr+' · by watershed</h3><p>HD determinations issued in <b>'+yr+'</b>, grouped by HUC8 basin. Shading shows year-over-year change vs '+(yr-1)+' (2021 is the baseline, shown by volume).</p>';
+  const i=YRS.indexOf(yr);
+  const rows=WSHED.map(w=>({n:w.name,huc:w.huc,v:w.y[i],c:i>0?w.y[i]-w.y[i-1]:null,t:w.tot,s:w.slope})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v).slice(0,15);
+  const mx=rows.length?rows[0].v:1;
+  tb.innerHTML=rows.map(r=>{
+   const ct=yr===2021?'<span style="color:#98a6b2">&mdash;</span>':(r.c>0?'<span class="chg up">+'+r.c+'</span>':(r.c<0?'<span class="chg dn">'+r.c+'</span>':'<span class="chg fl">0</span>'));
+   const tr=r.s>0.5?'<span class="up">&#9650; '+r.s.toFixed(1)+'</span>':(r.s<-0.5?'<span class="dn">&#9660; '+r.s.toFixed(1)+'</span>':'<span class="fl">&#9644; '+r.s.toFixed(1)+'</span>');
+   return '<tr onclick="wFly(\''+r.huc+'\')"><td><b>'+r.n+'</b></td><td class="n">'+r.v+'</td>'+
+    '<td><div class="bar" style="width:'+(r.v/mx*100)+'%"></div></td><td class="n">'+ct+'</td>'+
+    '<td class="n">'+r.t+'</td><td class="n">'+tr+'</td></tr>';}).join('');
+  hdr(['Watershed (HUC8)','Determinations','Volume','Change vs Prior Yr','5-Yr Total','Trend']);
+}
+function hdr(cols){
+  document.getElementById('th').innerHTML=cols.map((c,i)=>
+   '<th'+(i===0?'':(i===2?' style="width:130px"':' class="n"'))+'>'+c+'</th>').join('');
+}
+function fly(n){ const c=C[n]; map.flyTo([c.lat,c.lon],9,{duration:.8}); setTimeout(()=>pop(n),850); }
+
+function statewide(){
+  const mx=Math.max(...YRS.map(y=>M.statewide[y]));
+  document.getElementById('swy').innerHTML='<div style="display:flex;align-items:flex-end;gap:11px;height:150px;margin-bottom:9px">'+
+   YRS.map(y=>{const v=M.statewide[y],pi=YRS.indexOf(y),pv=pi>0?M.statewide[YRS[pi-1]]:null,d=pv?v-pv:null;
+    const c=d===null?'#7c8b97':(d>0?'#1a7f4b':'#b8342a');
+    return '<div style="flex:1;text-align:center"><div style="font-size:13px;font-weight:700;color:#0f3245;margin-bottom:4px">'+v+'</div>'+
+     '<div style="background:'+c+';height:'+(v/mx*105)+'px;border-radius:4px 4px 0 0"></div>'+
+     '<div style="font-size:12px;color:#5b6b78;margin-top:5px;font-weight:600">'+y+'</div>'+
+     '<div style="font-size:11px;font-weight:700;color:'+c+'">'+(d===null?'&mdash;':(d>0?'+':'')+d)+'</div></div>';}).join('')+
+   '<div style="flex:1;text-align:center;opacity:.6"><div style="font-size:13px;font-weight:700;color:#16465f;margin-bottom:4px">~'+M.sw_fc+'</div>'+
+   '<div style="background:repeating-linear-gradient(45deg,#16465f,#16465f 5px,#5d8ba6 5px,#5d8ba6 10px);height:'+(M.sw_fc/mx*105)+'px;border-radius:4px 4px 0 0"></div>'+
+   '<div style="font-size:12px;color:#5b6b78;margin-top:5px;font-weight:600">2026</div>'+
+   '<div style="font-size:11px;font-weight:700;color:#16465f">proj.</div></div></div>';
+  document.getElementById('fcb').innerHTML=
+   '<div style="display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap">'+
+   '<div><div style="font-size:11px;color:#5b7d92;text-transform:uppercase;letter-spacing:.7px;font-weight:700">2026 Projection</div>'+
+   '<div class="n">~'+M.sw_fc+'</div><div style="font-size:12.5px;color:#5b7d92">95% range: '+M.sw_lo+'&ndash;'+M.sw_hi+'</div></div>'+
+   '<div style="flex:1;min-width:330px;font-size:14px;color:#2f4a5c;line-height:1.62">'+
+   '<b>Expect roughly 800&ndash;850 determinations in 2026, most likely flat-to-modestly-up rather than a new surge.</b> '+
+   'The linear trend is +'+M.sw_slope+'/year, but it explains only '+(M.sw_r2*100).toFixed(0)+'% of the variance (r&sup2;='+M.sw_r2+') &mdash; because the series is not a smooth ramp. '+
+   'It is a <b>step change in 2022 followed by a plateau</b>. Since 2022, volume has oscillated in a 688&ndash;798 band with no sustained climb.'+
+   '<div style="margin-top:11px;padding-top:11px;border-top:1px solid #c5d8e4"><b>Where the real growth is:</b> the statewide plateau conceals sharp divergence underneath. '+
+   '<b>Knox</b> (+6.1/yr, r&sup2;=0.84) and <b>Rutherford</b> (+4.6/yr, r&sup2;=0.88) are the only large counties with statistically clean upward trends. '+
+   'Both are projected to keep climbing in 2026 (Knox ~53, Rutherford ~57). Meanwhile <b>Williamson</b>, the five-year volume leader, is flat (+0.8/yr).</div></div></div>';
+}
+
+/* ================= boundary view manager ================= */
+function setBoundaryPointers(){
+  const handoff = map.getZoom()>=CLICK_ZOOM;
+  const pcelFade = anyPclOn() && map.getZoom()>=PCL_MINZ;
+  const countyActive = geo==='county' && !handoff && !pcelFade;
+  const wsActive     = geo==='wshed'  && !handoff;
+  gj.eachLayer(l=>{ if(l._path) l._path.style.pointerEvents = countyActive?'':'none'; });
+  if(wsLyr) wsLyr.eachLayer(l=>{ if(l._path) l._path.style.pointerEvents = wsActive?'':'none'; });
+}
+function restyleBoundaries(){
+  gj.setStyle(countyStyle);
+  if(wsLyr){ wsLyr.setStyle(wsStyleFor);
+    if(geo==='county') wsLyr.bringToFront(); else gj.bringToFront(); }
+  setBoundaryPointers();
+}
+function refresh(){
+  ensureWs();                          // load/keep the live HUC8 geometry (both views use it)
+  if(liveMode){ liveRender(); return; }
+  restyleBoundaries();
+  drawDots(); drawSites(); legend();
+  (geo==='wshed'?wStats:stats)();
+  (geo==='wshed'?wTable:table)();
+}
+
+map.on('zoomend', ()=>{
+  restyleBoundaries();
+  syncBig();                       // show/hide large parcels as we cross the BIG_MINZ threshold
+  if(pclOn()) setHint('pclHint', pclHintText());
+  if(document.getElementById('ckBig').checked) setHint('bigHint', bigHintText());
+});
+
+/* ================= reference parcel layers (from the shared engine) ================= */
+async function addPcl(){
+  const useLocal = await initPcl();
+  if(!document.getElementById('ckPcl').checked) return;
+  if(pclLyr){ map.removeLayer(pclLyr); pclLyr=null; }
+  if(useLocal){ pclMode='local'; pclLyr=makeLocalPcl(); } else { pclMode='arcgis'; pclLyr=makeArcgisPcl(); }
+  map.addLayer(pclLyr); restyleBoundaries(); setHint('pclHint', pclHintText());
+}
+function bigHintText(){
+  return map.getZoom() < BIG_POLY_MINZ
+    ? BIGPARCELS.length.toLocaleString()+' parcels 500+ ac · green = ATTOM, purple = assessment · click a dot'
+    : 'Parcels 500+ acres · click for owner & acreage';
+}
+// Turn the "Large Parcels" layer on: show the overview DOTS immediately (embedded,
+// no network), then load the PMTiles so detailed polygons can appear at z12+.
+async function enableBig(){
+  syncBig();                       // dots appear right away, at any zoom (as far out as z8)
+  restyleBoundaries(); setHint('bigHint', bigHintText());
+  if(typeof L.vectorGrid !== 'undefined'){ await initPcl(); syncBig(); }
+  if(map.getZoom() >= BIG_POLY_MINZ && !_pcl.ready) setHint('bigHint', pclFailMsg('Large-parcel boundaries'));
+}
+// Dots for the far-out overview (zoom < 12), detailed polygons for zoomed-in (z12+,
+// native tiles only -> no fetch storm). Dots also stay as a fallback if the PMTiles
+// boundaries can't load. Layers are created lazily at a valid zoom.
+function syncBig(){
+  const on = document.getElementById('ckBig').checked;
+  const showPoly = on && _pcl.ready && map.getZoom() >= BIG_POLY_MINZ;
+  const showDots = on && !showPoly;
+  if(showPoly){ if(!bigLyr) bigLyr=makeBigPcl(); if(!map.hasLayer(bigLyr)) map.addLayer(bigLyr); }
+  else if(bigLyr && map.hasLayer(bigLyr)) map.removeLayer(bigLyr);
+  if(showDots){ if(!bigDotsLyr) bigDotsLyr=makeBigDots(); if(!map.hasLayer(bigDotsLyr)) map.addLayer(bigDotsLyr); }
+  else if(bigDotsLyr && map.hasLayer(bigDotsLyr)) map.removeLayer(bigDotsLyr);
+}
+document.getElementById('ckPcl').onchange = e => {
+  if(e.target.checked){
+    if(typeof L.vectorGrid === 'undefined'){ e.target.checked=false; setHint('pclHint','⚠ Tile library failed to load — needs internet'); return; }
+    setHint('pclHint','Loading parcels…'); addPcl();
+  } else { if(pclLyr){ map.removeLayer(pclLyr); pclLyr=null; pclMode=null; } restyleBoundaries(); setHint('pclHint','Best viewed zoomed in · 86 counties'); }
+};
+document.getElementById('ckBig').onchange = e => {
+  if(e.target.checked){ enableBig(); }         // dots show immediately; polygons load for z12+
+  else { syncBig(); restyleBoundaries(); setHint('bigHint','Farms, forests & government tracts'); }
+};
+// parcel click -> assessment popup (only once zoomed past the boundary hand-off)
+map.on('click', async e => {
+  const pOn = document.getElementById('ckPcl').checked;
+  const bOn = document.getElementById('ckBig').checked;
+  if((!pOn && !bOn) || !_pcl.ready) return;
+  if(map.getZoom() < PCL_MINZ) return;
+  const tgt = e.originalEvent && e.originalEvent.target;
+  if(tgt && tgt.closest && tgt.closest('.leaflet-marker-pane')) return;   // let site dots keep their popups
+  const props = await pclFeatureAt(e.latlng);
+  if(!props) return;
+  if(pOn || pclAcres(props) > 500) openParcelPopup(e.latlng, props);
+});
+
+/* =====================================================================
+   LIVE MODE — "recent activity" tabs (Last 14 / 30 / 90 days, 2026 YTD).
+   Pulls the CURRENT TDEC Hydrologic Determination points from the ArcGIS
+   layer when the page loads, so the tabs refresh on their own — no rebuild
+   step, no scheduled job. One fetch (rolling ~2 years) is cached in memory
+   and all four windows are derived from it against the real clock, so
+   "Last 14 days" is always exact to the moment of viewing.
+   ===================================================================== */
+const HD_SVC='https://tdeconline.tn.gov/arcgis/rest/services/WPC_Hydro_Determination/MapServer/0';
+const DAY=864e5;
+const LIVE_DEFS={
+  '14':  {lab:'Last 14 days',       test:ms=>ms>=Date.now()-14*DAY},
+  '30':  {lab:'Last 30 days',       test:ms=>ms>=Date.now()-30*DAY},
+  '90':  {lab:'Last 90 days',       test:ms=>ms>=Date.now()-90*DAY},
+  '2026':{lab:'2026 year-to-date',  test:ms=>new Date(ms).getFullYear()===2026}
+};
+const RECENCY=[{d:14,c:'#b8342a',lab:'≤ 14 days'},{d:30,c:'#ec7014',lab:'15–30 days'},
+  {d:90,c:'#e0a800',lab:'31–90 days'},{d:1e9,c:'#1a56db',lab:'earlier'}];
+function recencyColor(ms){ const age=(Date.now()-ms)/DAY; for(const b of RECENCY){ if(age<=b.d) return b.c; } return '#1a56db'; }
+function daysAgo(ms){ if(!ms) return '—'; const d=Math.floor((Date.now()-ms)/DAY); return d<=0?'today':(d===1?'yesterday':d+' days ago'); }
+function fmtDate(ms){ return new Date(ms).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }
+function fmtDateTime(ms){ const d=new Date(ms); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+', '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+
+/* ---- stream/WWC enrichment (Last 14 / 30-day tabs only), from tn_hd_streams.js ---- */
+const STREAM_WINDOWS={'14':1,'30':1};              // only these windows show report stream tables
+function streamsActive(){ return !!(liveMode && STREAM_WINDOWS[liveMode.key]); }
+function normName(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function hdStreamsFor(s){
+  if(typeof STREAMS==='undefined' || !STREAMS) return null;
+  return (STREAMS.byId&&STREAMS.byId[String(s.id)]) || (STREAMS.byName&&STREAMS.byName[normName(s.prop)]) || null;
+}
+function hdStreamColor(f){ return (f.tdec==='WWC') ? '#c58a34' : '#0d5a6b'; }
+function isPointFeat(f){ return f.point || (f.start[0]===f.end[0] && f.start[1]===f.end[1]); }
+function hdStreamsHtml(rec){
+  const rows=rec.features.map(f=>{
+    const col=hdStreamColor(f);
+    const pt=isPointFeat(f);
+    const coords = pt
+      ? f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)+' <span style="color:#b6c0c9">(point)</span>'
+      : f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)+' &rarr; '+f.end[0].toFixed(5)+', '+f.end[1].toFixed(5);
+    const meta = [esc(f.tdec), f.corps?esc(f.corps):null].filter(Boolean).join(' &middot; ');
+    return '<div style="border-top:1px solid #eef2f5;padding:4px 0 3px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="color:'+col+'">'+esc(f.id)+'</b><span style="font-size:11px;color:#41525f">'+(f.len?esc(f.len):'')+'</span></div>'+
+      '<div style="font-size:10.5px;color:#6b7680">'+meta+'</div>'+
+      '<div style="font-size:9.5px;color:#9aa7b2;font-family:ui-monospace,Menlo,monospace">'+coords+'</div></div>';
+  }).join('');
+  return '<div style="margin-top:8px;padding-top:5px;border-top:2px solid #eef2f5">'+
+    '<div style="font-size:10px;font-weight:800;letter-spacing:.4px;color:#0d7d8a;text-transform:uppercase;margin-bottom:1px">Streams &amp; WWC · from report</div>'+
+    rows+'</div>';
+}
+function drawHdSegments(rec){
+  hdStreamLyr.clearLayers();
+  rec.features.forEach(f=>{
+    const col=hdStreamColor(f);
+    const lbl=esc(f.id)+(f.len?' · '+esc(f.len):'');
+    if(isPointFeat(f)){
+      L.circleMarker(f.start,{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1}).addTo(hdStreamLyr).bindTooltip(lbl+' (point)',{sticky:true});
+    } else {
+      L.polyline([f.start,f.end],{color:col,weight:5,opacity:.9}).addTo(hdStreamLyr).bindTooltip(lbl,{sticky:true});
+      L.circleMarker(f.start,{radius:4,color:'#fff',weight:1.6,fillColor:col,fillOpacity:1,interactive:false}).addTo(hdStreamLyr);
+      L.circleMarker(f.end,{radius:4,color:'#fff',weight:1.6,fillColor:col,fillOpacity:1,interactive:false}).addTo(hdStreamLyr);
+    }
+  });
+}
+
+/* canonical county-name lookup so TDEC's COUNTY string matches the boundary layer */
+const CANON={}; (GEO.features||[]).forEach(f=>{ const n=f.properties&&f.properties.COUNTY; if(n) CANON[n.toUpperCase()]=n; });
+function canonCounty(raw){ const s=(raw||'').replace(/\s+county\s*$/i,'').trim().toUpperCase(); return CANON[s]||null; }
+
+/* point-in-polygon against a GeoJSON Polygon / MultiPolygon (lon,lat) */
+function ptInGeo(lng,lat,geom){
+  const polys = geom.type==='Polygon'?[geom.coordinates]:(geom.type==='MultiPolygon'?geom.coordinates:[]);
+  for(const poly of polys){
+    let inThis=false;
+    for(let r=0;r<poly.length;r++){
+      const ring=poly[r]; let inside=false;
+      for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+        const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+        if(((yi>lat)!==(yj>lat)) && (lng<(xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi)) inside=!inside;
+      }
+      if(r===0) inThis=inside; else if(inside) inThis=!inThis;   // subtract holes
+    }
+    if(inThis) return true;
+  }
+  return false;
+}
+
+/* ---- fetch: all determinations since Jan 1 of (thisYear-2), paginated ---- */
+async function fetchHDsince(isoDate){
+  const out=[]; let offset=0; const page=1000;
+  const base=HD_SVC+'/query?where='+encodeURIComponent("INVESTIGATION_DATE >= DATE '"+isoDate+" 00:00:00'")
+    +'&outFields='+encodeURIComponent('DETERMINATION_ID,COUNTY,PROPERTY_NAME,LOCATION,INVESTIGATION_DATE,LATITUDE,LONGITUDE')
+    +'&returnGeometry=true&outSR=4326&orderByFields='+encodeURIComponent('INVESTIGATION_DATE DESC')
+    +'&resultRecordCount='+page+'&f=json';
+  for(;;){
+    const d=await fetch(base+'&resultOffset='+offset).then(r=>r.json());
+    if(d && d.error) throw new Error((d.error.message||'ArcGIS query error')+(d.error.code?' ('+d.error.code+')':''));
+    const fs=(d&&d.features)||[];
+    fs.forEach(f=>{ const a=f.attributes||{}, g=f.geometry||{};
+      let lat=+a.LATITUDE, lon=+a.LONGITUDE;
+      if(!isFinite(lat)||!lat){ lat=+g.y; lon=+g.x; }
+      const ms=+a.INVESTIGATION_DATE;
+      if(!isFinite(lat)||!isFinite(lon)||!lat||!lon||!isFinite(ms)) return;
+      out.push({id:a.DETERMINATION_ID, lat, lon, ms, huc:null,
+        county:(a.COUNTY||'').trim(), prop:a.PROPERTY_NAME||'', loc:a.LOCATION||''});
+    });
+    if(fs.length<page) break;
+    offset+=page; if(offset>40000) break;   // safety cap
+  }
+  return out;
+}
+function ensureLiveData(){
+  if(_liveAll && !_liveErr) return Promise.resolve(_liveAll);
+  if(_liveDataPromise) return _liveDataPromise;
+  _liveLoading=true; _liveErr=null;
+  const since=(new Date().getFullYear()-2)+'-01-01';
+  _liveDataPromise=fetchHDsince(since).then(a=>{
+    _liveAll=a; _liveFetchedAt=Date.now(); _liveLoading=false;
+    return a;
+  }).catch(e=>{ _liveErr=e; _liveLoading=false; _liveDataPromise=null; throw e; });
+  return _liveDataPromise;
+}
+
+/* ---- derive a window (county + watershed aggregates) from the cache ---- */
+function deriveLive(key){
+  const def=LIVE_DEFS[key]; if(!def||!_liveAll) return;
+  liveSites=_liveAll.filter(s=>def.test(s.ms));
+  liveCounty={}; liveCC={}; liveMaxC=1;
+  liveSites.forEach(s=>{ const n=canonCounty(s.county); if(!n) return;
+    liveCounty[n]=(liveCounty[n]||0)+1; if(liveCounty[n]>liveMaxC) liveMaxC=liveCounty[n];
+    const o=liveCC[n]||(liveCC[n]={lat:0,lon:0,n:0}); o.lat+=s.lat; o.lon+=s.lon; o.n++; });
+  Object.values(liveCC).forEach(o=>{ o.lat/=o.n; o.lon/=o.n; });
+  liveWshed={}; liveWC={}; liveWName={}; liveMaxW=1;
+  if(_wsGeom) assignLiveWshed();
+}
+function assignLiveWshed(){
+  liveWshed={}; liveWC={}; liveWName={}; liveMaxW=1;
+  const feats=(_wsGeom&&_wsGeom.features)||[];
+  liveSites.forEach(s=>{ s.huc=null;
+    for(const f of feats){
+      if(f.geometry && ptInGeo(s.lon,s.lat,f.geometry)){
+        const h=wsHucOf(f); s.huc=h;
+        liveWshed[h]=(liveWshed[h]||0)+1; if(liveWshed[h]>liveMaxW) liveMaxW=liveWshed[h];
+        if(!liveWName[h]) liveWName[h]=wsNameOf(f);
+        const o=liveWC[h]||(liveWC[h]={lat:0,lon:0,n:0}); o.lat+=s.lat; o.lon+=s.lon; o.n++;
+        break;
+      }
+    }
+  });
+  Object.values(liveWC).forEach(o=>{ o.lat/=o.n; o.lon/=o.n; });
+}
+
+/* ---- live renderers (mirror the historical fill/hov/pop/stats/table) ---- */
+function liveFill(n){ const v=liveCounty[n]||0; return v===0?'#f2f4f6':ramp(BLU,Math.sqrt(v/liveMaxC)); }
+function liveHov(n){ const c=liveCounty[n]||0, h=document.getElementById('hov');
+  h.innerHTML='<div class="hn">'+n+' County</div>'+
+   '<div style="font-size:19px;font-weight:700;color:#0f3245">'+c+'</div>'+
+   '<div style="font-size:11.5px;color:#7c8b97">determinations · '+liveMode.lab.toLowerCase()+'</div>'+
+   (c?'':'<div style="color:#7c8b97;font-size:11.5px">no recent activity</div>'); }
+function liveSiteRow(s){ return '<div class="pr"><span>'+esc(s.prop||('HD '+s.id))+'</span><span>'+daysAgo(s.ms)+'</span></div>'; }
+function livePop(n,ll){
+  const rows=liveSites.filter(s=>canonCounty(s.county)===n).sort((a,b)=>b.ms-a.ms);
+  const list=rows.slice(0,6).map(liveSiteRow).join('');
+  const more=rows.length>6?'<div style="font-size:11px;color:#94a2ae;margin-top:3px">+'+(rows.length-6)+' more</div>':'';
+  const c=liveCC[n]||C[n]||{};
+  L.popup().setLatLng(ll||[c.lat,c.lon]).setContent(
+    '<div class="pt">'+n+' County</div>'+
+    '<div style="font-size:20px;font-weight:700;color:#0f3245">'+rows.length+'</div>'+
+    '<div style="font-size:11.5px;color:#7c8b97;margin-bottom:6px">determinations · '+liveMode.lab.toLowerCase()+'</div>'+
+    (list||'<div style="color:#94a2ae;font-size:12px">no recent determinations</div>')+more).openOn(map);
+}
+function liveWPop(h,ll){
+  const rows=liveSites.filter(s=>s.huc===h).sort((a,b)=>b.ms-a.ms);
+  const nm=liveWName[h]||(WCBY[h]&&WCBY[h].name)||('HUC '+h);
+  const list=rows.slice(0,6).map(liveSiteRow).join('');
+  const more=rows.length>6?'<div style="font-size:11px;color:#94a2ae;margin-top:3px">+'+(rows.length-6)+' more</div>':'';
+  const c=liveWC[h]||{};
+  L.popup().setLatLng(ll||[c.lat,c.lon]).setContent(
+    '<div class="pt">'+esc(nm)+'</div>'+
+    '<div style="font-size:20px;font-weight:700;color:#0f3245">'+rows.length+'</div>'+
+    '<div style="font-size:11.5px;color:#7c8b97;margin-bottom:6px">determinations · '+liveMode.lab.toLowerCase()+'</div>'+
+    (list||'<div style="color:#94a2ae;font-size:12px">no recent determinations</div>')+more).openOn(map);
+}
+function liveDrawSites(){
+  siteLyr.clearLayers(); hdStreamLyr.clearLayers();
+  if(!document.getElementById('ckSite').checked){ setHint('siteHint','HD sites hidden · showing sized dots'); return; }
+  const r=siteRadius(), withStreams=streamsActive();
+  let enriched=0;
+  liveSites.forEach(s=>{
+    const rec = withStreams ? hdStreamsFor(s) : null;
+    if(rec) enriched++;
+    const m=L.circleMarker([s.lat,s.lon],{radius:rec?r+1.4:r,fillColor:recencyColor(s.ms),
+      color:rec?'#0d7d8a':'#fff', weight:rec?2.4:1.1, opacity:.98, fillOpacity:.9, pane:'markerPane'})
+     .addTo(siteLyr)
+     .bindPopup('<div class="sitebox"><div class="sid">HD ID '+s.id+(rec?' · '+rec.features.length+' feature'+(rec.features.length===1?'':'s'):'')+'</div>'+
+      '<div class="sn">'+esc(s.prop||'—')+'</div>'+
+      '<div class="sr"><span>County</span><span>'+esc(s.county||'—')+'</span></div>'+
+      (s.loc?'<div class="sr"><span>Location</span><span>'+esc(s.loc)+'</span></div>':'')+
+      '<div class="sr"><span>Investigated</span><span>'+fmtDate(s.ms)+' ('+daysAgo(s.ms)+')</span></div>'+
+      '<div class="sr"><span>Coordinates</span><span>'+s.lat.toFixed(4)+', '+s.lon.toFixed(4)+'</span></div>'+
+      (rec?hdStreamsHtml(rec):'')+
+      '<a href="https://dataviewers.tdec.tn.gov/dataviewers/f?p=2005:34341:::NO::P34341_DETERMINATION_ID:'+s.id+'" target="_blank">Open record in TDEC DataViewer →</a></div>',{maxWidth:300});
+    if(rec){ m.on('popupopen',()=>drawHdSegments(rec)); m.on('popupclose',()=>hdStreamLyr.clearLayers()); }
+  });
+  const enr = withStreams ? (enriched?' · '+enriched+' with stream detail':'') : '';
+  setHint('siteHint', liveSites.length.toLocaleString()+' determination'+(liveSites.length===1?'':'s')+' · '+liveMode.lab.toLowerCase()+enr+' · click for detail');
+}
+function liveDrawDots(){
+  dots.clearLayers();
+  if(document.getElementById('ckSite').checked) return;
+  const src = geo==='wshed'
+    ? Object.keys(liveWshed).map(h=>({o:liveWC[h],v:liveWshed[h]}))
+    : Object.keys(liveCounty).map(n=>({o:liveCC[n],v:liveCounty[n]}));
+  const mx = geo==='wshed'?liveMaxW:liveMaxC;
+  src.forEach(({o,v})=>{ if(!o||!v) return;
+    L.circleMarker([o.lat,o.lon],{radius:3+Math.sqrt(v/mx)*12,fillColor:'#16465f',color:'#fff',weight:1.2,opacity:.95,fillOpacity:.82,interactive:false}).addTo(dots); });
+}
+function liveLegend(){
+  const L1=document.getElementById('leg'); const unit=(geo==='wshed'?'watershed':'county');
+  const dotsOn=document.getElementById('ckSite').checked;
+  const rec=RECENCY.map(b=>'<span style="color:'+b.c+';font-weight:700">●</span> '+b.lab).join(' &nbsp; ');
+  L1.innerHTML='<div class="li"><span>Fewer</span><div class="ramp">'+BLU.map(c=>'<div style="background:'+c+'"></div>').join('')+'</div><span>More determinations</span></div>'+
+   '<div class="li"><div class="sw" style="background:#f2f4f6"></div>No activity</div>'+
+   (dotsOn?'<div class="li"><span style="color:#41525f;font-weight:600">Dot recency:</span>&nbsp;'+rec+'</div>':'')+
+   '<div class="li" style="margin-left:auto">Shading = determinations by '+unit+' · '+liveMode.lab.toLowerCase()+'</div>';
+}
+function liveMsgStats(){
+  const el=document.getElementById('stats');
+  if(_liveErr){
+    el.innerHTML='<div class="st" style="grid-column:1/-1;border-left:3px solid #b8342a">'+
+      '<div class="k" style="color:#b8342a">Live TDEC feed unavailable</div>'+
+      '<div class="d fl" style="margin-top:6px;font-weight:500;line-height:1.5">Could not reach the TDEC Hydrologic Determination service ('+esc((_liveErr&&_liveErr.message)||'network / CORS error')+'). The Live tabs need internet and the TDEC ArcGIS server must permit the request from this page. The historical year tabs (2021–2025) work offline. You can retry by re-selecting a Live tab or reloading the page.</div></div>';
+  } else {
+    el.innerHTML='<div class="st" style="grid-column:1/-1">'+
+      '<div class="k">Loading '+(liveMode?esc(liveMode.lab):'')+'…</div>'+
+      '<div class="d fl" style="margin-top:6px;font-weight:500">Pulling the current determinations from the TDEC Division of Water Resources live service…</div></div>';
+  }
+}
+function liveStatsRender(){
+  const tot=liveSites.length, activeC=Object.keys(liveCounty).length;
+  let topN='—',topV=0; for(const k in liveCounty){ if(liveCounty[k]>topV){ topV=liveCounty[k]; topN=k; } }
+  const newest=liveSites.reduce((m,s)=>Math.max(m,s.ms),0);
+  document.getElementById('stats').innerHTML=
+   '<div class="st"><div class="k">'+esc(liveMode.lab)+'</div><div class="v">'+tot.toLocaleString()+'</div><div class="d fl">determinations collected</div></div>'+
+   '<div class="st"><div class="k">Counties Active</div><div class="v">'+activeC+'</div><div class="d fl">of 95</div></div>'+
+   '<div class="st"><div class="k">Most Active</div><div class="v" style="font-size:20px">'+esc(topN)+'</div><div class="d fl">'+topV+' determination'+(topV===1?'':'s')+'</div></div>'+
+   '<div class="st"><div class="k">Most Recent</div><div class="v" style="font-size:18px">'+(newest?daysAgo(newest):'—')+'</div><div class="d fl">'+(newest?fmtDate(newest):'no records')+'</div></div>'+
+   '<div class="st"><div class="k">Live From TDEC</div><div class="v" style="font-size:15px;color:#0d7d8a">● on page load</div><div class="d fl">pulled '+fmtDateTime(_liveFetchedAt||Date.now())+'</div></div>';
+}
+function liveTableRender(){
+  document.getElementById('sumh').textContent=liveMode.lab+' — recent activity';
+  document.getElementById('ys').innerHTML='<h3>'+esc(liveMode.lab)+'</h3><p>Hydrologic Determinations collected across Tennessee, pulled <b>live from the TDEC Division of Water Resources</b> point service when this page loaded'+(_liveFetchedAt?' ('+fmtDateTime(_liveFetchedAt)+')':'')+'. <b>'+liveSites.length.toLocaleString()+'</b> determination'+(liveSites.length===1?'':'s')+' fall in this window — the earliest public signal of where aquatic-feature development pressure is landing right now. Click a '+(geo==='wshed'?'watershed':'county')+' or dot for the underlying records.</p>';
+  const tb=document.getElementById('tb');
+  if(geo==='wshed'){
+    const rows=Object.keys(liveWshed).map(h=>({h,v:liveWshed[h],name:liveWName[h]||(WCBY[h]&&WCBY[h].name)||('HUC '+h)})).sort((a,b)=>b.v-a.v).slice(0,15);
+    const mx=rows.length?rows[0].v:1;
+    tb.innerHTML=rows.length?rows.map(r=>'<tr onclick="liveFlyW(\''+r.h+'\')"><td><b>'+esc(r.name)+'</b></td><td class="n">'+r.v+'</td><td><div class="bar" style="width:'+(r.v/mx*100)+'%"></div></td></tr>').join('')
+      :'<tr><td colspan="3" style="color:#94a2ae;padding:10px 0">No determinations in this window'+(_wsGeom?'':' (loading watershed geometry…)')+'.</td></tr>';
+    hdr(['Watershed (HUC8)','Determinations','Share']);
+    return;
+  }
+  const rows=Object.keys(liveCounty).map(n=>{
+    let recent=0; liveSites.forEach(s=>{ if(canonCounty(s.county)===n && s.ms>recent) recent=s.ms; });
+    return {n,v:liveCounty[n],recent};
+  }).sort((a,b)=>b.v-a.v).slice(0,15);
+  const mx=rows.length?rows[0].v:1;
+  tb.innerHTML=rows.length?rows.map(r=>'<tr onclick="liveFlyC(\''+esc(r.n).replace(/\'/g,"\\\\'")+'\')"><td><b>'+esc(r.n)+'</b></td><td class="n">'+r.v+'</td><td><div class="bar" style="width:'+(r.v/mx*100)+'%"></div></td><td class="n">'+daysAgo(r.recent)+'</td></tr>').join('')
+    :'<tr><td colspan="4" style="color:#94a2ae;padding:10px 0">No determinations in this window.</td></tr>';
+  hdr(['County','Determinations','Share','Latest']);
+}
+function liveFlyC(n){ const o=liveCC[n]; if(o&&o.lat){ map.flyTo([o.lat,o.lon],10,{duration:.8}); setTimeout(()=>livePop(n,[o.lat,o.lon]),850); } }
+function liveFlyW(h){ const o=liveWC[h]; if(o&&o.lat){ map.flyTo([o.lat,o.lon],9,{duration:.8}); setTimeout(()=>liveWPop(h,[o.lat,o.lon]),850); } }
+function liveRender(){
+  if(_liveLoading || _liveErr){ liveMsgStats(); siteLyr.clearLayers(); dots.clearLayers(); hdStreamLyr.clearLayers();
+    document.getElementById('leg').innerHTML=_liveErr?'':'<div class="li" style="color:#7c8b97">Loading current determinations from TDEC…</div>';
+    document.getElementById('sumh').textContent=liveMode?liveMode.lab:'Recent activity';
+    document.getElementById('ys').innerHTML=''; document.getElementById('tb').innerHTML=''; document.getElementById('th').innerHTML='';
+    return; }
+  restyleBoundaries();
+  drawDots(); drawSites(); legend();
+  liveStatsRender(); liveTableRender();
+}
+function selectLive(key){
+  liveMode={key, lab:LIVE_DEFS[key].lab, test:LIVE_DEFS[key].test};
+  yr='__live__';
+  document.querySelectorAll('.yb[data-y]').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.yb[data-live]').forEach(x=>x.classList.toggle('on', x.dataset.live===key));
+  document.getElementById('mode').style.display='none';
+  const ad=document.getElementById('allData'); if(ad) ad.style.display='none';
+  map.closePopup();
+  if(_liveAll && !_liveErr){ deriveLive(key); refresh(); return; }
+  _liveLoading=true; _liveErr=null; refresh();                 // show the loading state at once
+  ensureLiveData().then(()=>{ if(liveMode){ deriveLive(liveMode.key); refresh(); } })
+                  .catch(()=>{ if(liveMode) refresh(); });      // error surfaced via liveMsgStats()
+}
+function exitLive(){
+  liveMode=null;
+  hdStreamLyr.clearLayers();
+  document.getElementById('mode').style.display='flex';
+  const ad=document.getElementById('allData'); if(ad) ad.style.display='';
+  document.querySelectorAll('.yb[data-live]').forEach(x=>x.classList.remove('on'));
+}
+
+/* ================= controls wiring ================= */
+document.getElementById('yrs').innerHTML=
+  YRS.map(y=>'<button class="yb" data-y="'+y+'">'+y+'</button>').join('')
+  +'<button class="yb allb on" data-y="all">5-Year Overall</button>'
+  +'<button class="yb sab" id="allData">Show All Data</button>'
+  +'<span class="lvsep">Live</span>'
+  +'<button class="yb lv" data-live="14">Last 14 days</button>'
+  +'<button class="yb lv" data-live="30">Last 30 days</button>'
+  +'<button class="yb lv" data-live="90">Last 90 days</button>'
+  +'<button class="yb lv" data-live="2026">2026 YTD</button>';
+document.querySelectorAll('.yb[data-live]').forEach(b=>b.onclick=()=>selectLive(b.dataset.live));
+document.querySelectorAll('.yb[data-y]').forEach(b=>b.onclick=()=>{
+  exitLive();
+  document.querySelectorAll('.yb[data-y]').forEach(x=>x.classList.toggle('on',x===b));
+  yr = b.dataset.y==='all' ? ALL : +b.dataset.y;
+  map.closePopup(); refresh();
+});
+document.getElementById('allData').onclick=function(){
+  showAllData=!showAllData; this.classList.toggle('on',showAllData);
+  drawSites(); legend();
+};
+document.querySelectorAll('.gb').forEach(b=>b.onclick=()=>{
+  geo=b.dataset.g; document.querySelectorAll('.gb').forEach(x=>x.classList.toggle('on',x===b));
+  map.closePopup(); refresh();
+});
+document.querySelectorAll('.mb').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.m; document.querySelectorAll('.mb').forEach(x=>x.classList.toggle('on',x===b)); refresh();
+});
+
+showServeBannerIfFile();   // warn + guide if opened as a file:// URL (parcels need http)
+refresh(); statewide();
+document.getElementById('mode').style.display='flex';   // Volume/Change available on every tab
+fitMapTo(gj);   // robust fit (handles container-width race at load)
+</script></body></html>
