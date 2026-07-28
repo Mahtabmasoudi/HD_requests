@@ -5,7 +5,7 @@
    Shown on the 14 / 30 / 90-day and 2026 live tabs of hd_requests.html.
    byId[<DETERMINATION_ID>] = {prop, county, count, features:[{id,len,lenFt,corps,tdec,point,start,end}]} */
 const STREAMS = {
- generatedAt:"2026-07-28 13:07 (auto)", window:"last 30 days (rolling); reused by 90-day & 2026 tabs",
+ generatedAt:"2026-07-28 13:35 (auto)", window:"last 30 days (rolling); reused by 90-day & 2026 tabs",
  byId:{
   "34774": {prop:"Wiley Oakley Dr. Crossover Bridge", county:"Sevier", count:7, features:[
     {id:"Channel 2a", len:"321 ft", lenFt:321.5, corps:null, tdec:"WWC", point:false, start:[35.7337,-83.52121], end:[35.73445,-83.52064]},
