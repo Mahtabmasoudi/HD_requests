@@ -719,29 +719,40 @@ function hdStreamsHtml(rec){
   const nStr = feats.filter(f=>f.tdec!=='WWC').length;
   const nWwc = feats.filter(f=>f.tdec==='WWC').length;
   const totalFt = feats.reduce((s,f)=> s+(featLenFt(f)||0), 0);
+  // one compact table row per feature
   const rows=feats.map(f=>{
     const col=hdStreamColor(f);
     const pt=isPointFeat(f);
     const lenTxt = f.len ? esc(f.len) : fmtLenFt(featLenFt(f));
+    const typ = (f.tdec==='WWC') ? 'WWC' : 'Stream';
     const coords = pt
-      ? f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)+' <span style="color:#b6c0c9">(point)</span>'
-      : f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)+' &rarr; '+f.end[0].toFixed(5)+', '+f.end[1].toFixed(5);
-    const meta = [esc(f.tdec), f.corps?esc(f.corps):null].filter(Boolean).join(' &middot; ');
-    return '<div style="border-top:1px solid #eef2f5;padding:4px 0 3px">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="color:'+col+'">'+esc(f.id)+'</b><span style="font-size:11px;color:#41525f">'+lenTxt+'</span></div>'+
-      '<div style="font-size:10.5px;color:#6b7680">'+meta+'</div>'+
-      '<div style="font-size:9.5px;color:#9aa7b2;font-family:ui-monospace,Menlo,monospace">'+coords+'</div></div>';
+      ? f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)
+      : f.start[0].toFixed(5)+', '+f.start[1].toFixed(5)+'<br>&rarr; '+f.end[0].toFixed(5)+', '+f.end[1].toFixed(5);
+    return '<tr style="border-top:1px solid #eef2f5">'+
+      '<td style="padding:2px 6px 2px 0;white-space:nowrap;vertical-align:top"><b style="color:'+col+'">'+esc(f.id)+'</b></td>'+
+      '<td style="padding:2px 6px 2px 0;white-space:nowrap;vertical-align:top;color:'+col+'">'+typ+'</td>'+
+      '<td style="padding:2px 8px 2px 0;white-space:nowrap;vertical-align:top;text-align:right;color:#41525f">'+lenTxt+'</td>'+
+      '<td style="padding:2px 0;vertical-align:top;color:#9aa7b2;font-family:ui-monospace,Menlo,monospace;font-size:9px;line-height:1.35">'+coords+'</td>'+
+      '</tr>';
   }).join('');
   // count-per-point + total begin->end length summary
   const bits=[];
   if(nStr) bits.push(nStr+' stream'+(nStr===1?'':'s'));
   if(nWwc) bits.push(nWwc+' WWC');
-  const summary = '<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;color:#41525f;margin:2px 0 1px">'+
+  const summary = '<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;color:#41525f;margin:2px 0 3px">'+
     '<span><b>'+feats.length+'</b> feature'+(feats.length===1?'':'s')+(bits.length?' · '+bits.join(' · '):'')+'</span>'+
-    (totalFt>0?'<span>Σ '+Math.round(totalFt).toLocaleString('en-US')+' ft</span>':'')+'</div>';
+    (totalFt>0?'<span>&Sigma; '+Math.round(totalFt).toLocaleString('en-US')+' ft</span>':'')+'</div>';
+  const head='<tr style="color:#8a97a2;font-size:8.5px;text-transform:uppercase;letter-spacing:.3px">'+
+    '<th style="text-align:left;font-weight:700;padding:0 6px 2px 0">ID</th>'+
+    '<th style="text-align:left;font-weight:700;padding:0 6px 2px 0">Det.</th>'+
+    '<th style="text-align:right;font-weight:700;padding:0 8px 2px 0">Length</th>'+
+    '<th style="text-align:left;font-weight:700;padding:0 0 2px 0">Begin &rarr; End</th></tr>';
   return '<div style="margin-top:8px;padding-top:5px;border-top:2px solid #eef2f5">'+
-    '<div style="font-size:10px;font-weight:800;letter-spacing:.4px;color:#0d7d8a;text-transform:uppercase;margin-bottom:1px">Streams &amp; WWC · begin→end length</div>'+
-    summary+rows+'</div>';
+    '<div style="font-size:10px;font-weight:800;letter-spacing:.4px;color:#0d7d8a;text-transform:uppercase;margin-bottom:1px">Streams &amp; WWC · begin&rarr;end length</div>'+
+    summary+
+    '<div style="max-height:150px;overflow-y:auto;overflow-x:hidden;margin:0 -2px">'+
+      '<table style="border-collapse:collapse;width:100%;font-size:10.5px">'+head+rows+'</table>'+
+    '</div>';
 }
 function drawHdSegments(rec){
   hdStreamLyr.clearLayers();
@@ -894,7 +905,7 @@ function liveDrawSites(){
       '<div class="sr"><span>Investigated</span><span>'+fmtDate(s.ms)+' ('+daysAgo(s.ms)+')</span></div>'+
       '<div class="sr"><span>Coordinates</span><span>'+s.lat.toFixed(4)+', '+s.lon.toFixed(4)+'</span></div>'+
       (rec?hdStreamsHtml(rec):'')+
-      '<a href="https://dataviewers.tdec.tn.gov/dataviewers/f?p=2005:34341:::NO::P34341_DETERMINATION_ID:'+s.id+'" target="_blank">Open record in TDEC DataViewer →</a></div>',{maxWidth:300});
+      '<a href="https://dataviewers.tdec.tn.gov/dataviewers/f?p=2005:34341:::NO::P34341_DETERMINATION_ID:'+s.id+'" target="_blank">Open record in TDEC DataViewer →</a></div>',{maxWidth:340});
     if(rec){ m.on('popupopen',()=>drawHdSegments(rec)); m.on('popupclose',()=>hdStreamLyr.clearLayers()); }
   });
   const enr = withStreams ? (enriched?' · '+enriched+' with stream detail':'') : '';
