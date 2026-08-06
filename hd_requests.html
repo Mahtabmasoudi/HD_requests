@@ -6,14 +6,16 @@
 <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
 <link rel="stylesheet" href="tn_shared.css"/>
 <style>
-/* --- live "recent activity" tabs (14/30/90 days + 2026 YTD) --- */
-.yrs{flex-wrap:wrap}
-.yb.lv{border-color:#0d7d8a;color:#0a6d78}
-.yb.lv:hover{border-color:#0a5a63;color:#0a5a63}
-.yb.lv.on{background:#0d7d8a;border-color:#0d7d8a;color:#fff}
-.lvsep{display:inline-flex;align-items:center;gap:7px;margin-left:14px;padding:0 2px;font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#0d7d8a;align-self:center}
-.lvsep::before{content:"";width:8px;height:8px;border-radius:50%;background:#0d7d8a;box-shadow:0 0 0 0 rgba(13,125,138,.55);animation:lvpulse 2s infinite}
-@keyframes lvpulse{0%{box-shadow:0 0 0 0 rgba(13,125,138,.55)}70%{box-shadow:0 0 0 7px rgba(13,125,138,0)}100%{box-shadow:0 0 0 0 rgba(13,125,138,0)}}
+/* --- time-window dropdown, "updated" chip & map zoom badge --- */
+.yrs{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.winlab{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#41525f}
+.winsel{font:inherit;font-size:13.5px;font-weight:600;color:#16465f;padding:7px 11px;border:1px solid #b7c2cc;border-radius:6px;background:#fff;cursor:pointer}
+.winsel:hover{border-color:#16465f}
+.winsel:focus{outline:2px solid #0d7d8a;outline-offset:1px}
+.upd{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#5b6b78;font-weight:600;white-space:nowrap}
+.upd::before{content:"";width:8px;height:8px;border-radius:50%;background:#1a7f4b;flex:none}
+.upd b{color:#0d7d8a;font-weight:700}
+.zoombadge{background:rgba(255,255,255,.94);border:1px solid #cdd6dd;border-radius:5px;padding:3px 9px;font:600 12px/1.2 system-ui,-apple-system,sans-serif;color:#0f3245;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 </style>
 </head><body>
 <div class="wrap">
@@ -103,6 +105,11 @@ let liveMaxC=1, liveMaxW=1;
 let _liveAll=null, _liveErr=null, _liveLoading=false, _liveDataPromise=null, _liveFetchedAt=0;
 
 const map = L.map('map',{scrollWheelZoom:true}).setView([35.86,-86.3],7);
+L.control.scale({metric:true,imperial:true,position:'bottomleft'}).addTo(map);
+const zoomBadge=L.control({position:'bottomright'});
+zoomBadge.onAdd=function(){ const d=L.DomUtil.create('div','zoombadge'); d.innerHTML='Zoom '+map.getZoom(); return d; };
+zoomBadge.addTo(map);
+map.on('zoomend',function(){ const el=document.querySelector('.zoombadge'); if(el) el.innerHTML='Zoom '+map.getZoom(); });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
  {attribution:'&copy; OpenStreetMap &copy; CARTO | Boundaries: TN GIS | Data: TDEC DWR',maxZoom:20,opacity:.92}).addTo(map);
 
@@ -1090,6 +1097,7 @@ function selectLive(key){
   yr='__live__';
   document.querySelectorAll('.yb[data-y]').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.yb[data-live]').forEach(x=>x.classList.toggle('on', x.dataset.live===key));
+  const _ws=document.getElementById('winSel'); if(_ws) _ws.value='live:'+key;
   document.getElementById('mode').style.display='none';
   const ad=document.getElementById('allData'); if(ad) ad.style.display='none';
   map.closePopup();
@@ -1108,21 +1116,26 @@ function exitLive(){
 
 /* ================= controls wiring ================= */
 document.getElementById('yrs').innerHTML=
-  YRS.map(y=>'<button class="yb" data-y="'+y+'">'+y+'</button>').join('')
-  +'<button class="yb allb on" data-y="all">5-Year Overall</button>'
+  '<label class="winlab">Time window '
+  +'<select id="winSel" class="winsel" aria-label="Time window">'
+  + YRS.map(y=>'<option value="'+y+'">'+y+'</option>').join('')
+  + '<option value="all" selected>5-Year Overall (2021\u20132025)</option>'
+  + '<optgroup label="Recent activity">'
+  +   '<option value="live:14">Last 14 days</option>'
+  +   '<option value="live:30">Last 30 days</option>'
+  +   '<option value="live:90">Last 90 days</option>'
+  +   '<option value="live:2026">2026 YTD</option>'
+  + '</optgroup>'
+  +'</select></label>'
   +'<button class="yb sab" id="allData">Show All Data</button>'
-  +'<span class="lvsep">Live</span>'
-  +'<button class="yb lv" data-live="14">Last 14 days</button>'
-  +'<button class="yb lv" data-live="30">Last 30 days</button>'
-  +'<button class="yb lv" data-live="90">Last 90 days</button>'
-  +'<button class="yb lv" data-live="2026">2026 YTD</button>';
-document.querySelectorAll('.yb[data-live]').forEach(b=>b.onclick=()=>selectLive(b.dataset.live));
-document.querySelectorAll('.yb[data-y]').forEach(b=>b.onclick=()=>{
+  +'<span class="upd" id="updChip">Updated <b>'+esc(updatedStamp()||'\u2014')+'</b></span>';
+document.getElementById('winSel').onchange=function(){
+  const v=this.value;
+  if(v.indexOf('live:')===0){ selectLive(v.slice(5)); return; }
   exitLive();
-  document.querySelectorAll('.yb[data-y]').forEach(x=>x.classList.toggle('on',x===b));
-  yr = b.dataset.y==='all' ? ALL : +b.dataset.y;
+  yr = (v==='all') ? ALL : +v;
   map.closePopup(); refresh();
-});
+};
 document.getElementById('allData').onclick=function(){
   showAllData=!showAllData; this.classList.toggle('on',showAllData);
   drawSites(); legend();

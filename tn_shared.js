@@ -61,7 +61,7 @@ const PCL_TILES = 'https://tiles.arcgis.com/tiles/YuVBSS7Y1of2Qud1/arcgis/rest/s
    even opened as a file:// page. (To use a local copy instead, set this to
    'tn_parcels.pmtiles' and serve the page over http via serve_tn_map.cmd.) */
 const PCL_PMTILES = 'https://huggingface.co/datasets/mahtabmasoudinezhad/tn-parcels/resolve/main/tn_parcels.pmtiles';
-const PCL_MINZ = 13;         // ALL-parcels layer renders from this zoom (2M+ features, kept high for perf)
+const PCL_MINZ = 12;         // ALL-parcels layer renders from this zoom (z12 is the lowest the tiles exist; below it there is no parcel data)
 const PCL_MINNATIVE = 12;    // lowest zoom baked into the tiles (nothing below z12 exists)
 const PCL_MAXNATIVE = 14;    // highest zoom baked into the tiles; overzoomed beyond
 const BIG_POLY_MINZ = 12;    // LARGE-parcel detailed polygons come from the native z12 tiles at this zoom+;
