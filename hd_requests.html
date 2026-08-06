@@ -1118,13 +1118,15 @@ function exitLive(){
 document.getElementById('yrs').innerHTML=
   '<label class="winlab">Time window '
   +'<select id="winSel" class="winsel" aria-label="Time window">'
-  + YRS.map(y=>'<option value="'+y+'">'+y+'</option>').join('')
-  + '<option value="all" selected>5-Year Overall (2021\u20132025)</option>'
   + '<optgroup label="Recent activity">'
-  +   '<option value="live:14">Last 14 days</option>'
+  +   '<option value="live:14" selected>Last 14 days</option>'
   +   '<option value="live:30">Last 30 days</option>'
   +   '<option value="live:90">Last 90 days</option>'
   +   '<option value="live:2026">2026 YTD</option>'
+  + '</optgroup>'
+  +'<optgroup label="By year">'
+  + YRS.slice().reverse().map(y=>'<option value="'+y+'">'+y+'</option>').join('')
+  + '<option value="all">5-Year Overall (2021\u20132025)</option>'
   + '</optgroup>'
   +'</select></label>'
   +'<button class="yb sab" id="allData">Show All Data</button>'
@@ -1152,4 +1154,5 @@ showServeBannerIfFile();   // warn + guide if opened as a file:// URL (parcels n
 refresh(); statewide();
 document.getElementById('mode').style.display='flex';   // Volume/Change available on every tab
 fitMapTo(gj);   // robust fit (handles container-width race at load)
+selectLive('14');   // open on the most-recent window (Last 14 days)
 </script></body></html>
