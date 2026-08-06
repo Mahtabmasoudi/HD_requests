@@ -1,0 +1,10 @@
+# Local pipeline tooling & state — NOT part of the published website.
+# These live on your computer only; the site on GitHub holds just the display files.
+hd_daily_update.py
+run_update.cmd
+setup.cmd
+HD_PIPELINE_README.md
+manual_features.json
+hd_data.json
+needs_review.txt
+update_log.txt
