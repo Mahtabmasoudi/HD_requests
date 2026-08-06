@@ -235,32 +235,32 @@ def parse_date_ms(s):
 JS_SCRAPE_PAGE = r"""
 () => {
   const norm = s => (s||'').replace(/\s+/g,' ').trim();
-  let t = document.querySelector('table.a-IRR-table')
-       || document.querySelector('.a-IRR-table')
-       || document.querySelector('#apexir_DATA_PANEL table')
-       || document.querySelector('table.apexir_WORKSHEET_DATA');
-  if(!t){
-    const cand = Array.from(document.querySelectorAll('table'))
-      .filter(x => x.rows && x.rows.length > 1)
-      .sort((a,b)=> b.rows.length - a.rows.length);
-    t = cand[0] || null;
-  }
-  if(!t) return {headers:[], rows:[], pager:'', sig:'no-table'};
-  let headers = Array.from(t.querySelectorAll('thead th, thead td')).map(h=>norm(h.textContent)).filter(x=>x);
-  let bodyRows = Array.from(t.querySelectorAll('tbody tr'));
-  if(!headers.length && t.rows.length){
-    headers = Array.from(t.rows[0].cells).map(c=>norm(c.textContent));
-    bodyRows = Array.from(t.rows).slice(1);
-  }
-  const rows = bodyRows.map(tr=>{
-    const cells = Array.from(tr.cells).map(td=>norm(td.textContent));
+  // Column headers — TDEC's interactive report puts the labels in <th> cells in the FIRST ROW
+  // (there is no <thead>). Read the first row of the a-IRR table.
+  let headers = [];
+  const irr = document.querySelector('table.a-IRR-table');
+  if(irr && irr.rows[0]) headers = Array.from(irr.rows[0].children).map(c=>norm(c.textContent));
+  if(!headers.filter(x=>x).length)
+    headers = Array.from(document.querySelectorAll('table.a-IRR-table th, thead th, thead td')).map(h=>norm(h.textContent));
+  headers = headers.filter(x=>x);
+  const W = headers.length;
+  // Data rows — any <tr> whose <td> count matches the header width (the data sits in a separate
+  // "_orig" table under the frozen header, so scan the whole document and match by column count).
+  const rows = [];
+  Array.from(document.querySelectorAll('tr')).forEach(tr=>{
+    const tds = Array.from(tr.children).filter(c=>c.tagName==='TD');
+    if(!tds.length) return;
+    if(W ? Math.abs(tds.length - W) > 2 : tds.length < 4) return;
+    const cells = tds.map(td=>norm(td.textContent));
+    if(!cells.some(c=>c)) return;
     let id=null;
     const a = tr.querySelector('a[href*="DETERMINATION_ID"]') || tr.querySelector('a[href*="34341"]');
-    if(a){ const h=a.getAttribute('href')||a.href||''; const m=h.match(/DETERMINATION_ID[:,]?(\d+)/i)||h.match(/(\d{3,})(?:\D*)$/); if(m) id=m[1]; }
-    return {cells, id};
-  }).filter(r=>r.cells.some(c=>c));
+    if(a){ const h=a.getAttribute('href')||a.href||''; const m=h.match(/DETERMINATION_ID[:,]?(\d+)/i); if(m) id=m[1]; }
+    rows.push({cells, id});
+  });
   let pager='';
-  const p = document.querySelector('.a-IRR-pagination') || document.querySelector('.apexir_PAGINATION') || document.querySelector('td.pagination');
+  const p = document.querySelector('.a-IRR-pagination-label') || document.querySelector('.a-IRR-pagination')
+         || document.querySelector('.apexir_PAGINATION') || document.querySelector('td.pagination');
   if(p) pager = norm(p.textContent);
   const sig = (rows[0] ? (rows[0].id||rows[0].cells.join('|')).slice(0,80) : '') + '#' + rows.length;
   return {headers, rows, pager, sig};
@@ -271,6 +271,11 @@ def _col(headers, *keys):
     for i, h in enumerate(headers):
         hl = h.lower()
         if any(k in hl for k in keys): return i
+    return None
+
+def _col_exact(headers, *names):
+    for i, h in enumerate(headers):
+        if h.strip().lower() in names: return i
     return None
 
 def _click_next(page):
@@ -292,15 +297,36 @@ def _click_next(page):
 
 def fetch_collected_requests(page):
     """Scrape TDEC's Page-2 'HD Requests Collected' report. Returns a list of
-    {id, prop, county, city, loc, lat, lon, ms}. Best-effort: never raises."""
+    {id, prop, county, city, loc, lat, lon, ms} for requests investigated/received within the
+    last ~2 years (the window the live map can show). Best-effort: never raises."""
     sites, seen = [], set()
+    DATA_ROW_JS = ("() => Array.from(document.querySelectorAll('tr'))"
+                   ".some(tr => Array.from(tr.children).filter(c=>c.tagName==='TD').length >= 8)")
     try:
         page.goto(COLLECT_URL, wait_until="domcontentloaded")
-        page.wait_for_timeout(2500)
+        # the interactive report fills its rows by AJAX after load — wait for them to appear
+        try:
+            page.wait_for_function(DATA_ROW_JS, timeout=25000)
+        except Exception:
+            page.wait_for_timeout(3000)
     except Exception as e:
         log(f"  (collected list: could not open Page 2 - {e})")
         return sites
-    headers_logged, last_sig = False, None
+
+    # only keep rows recent enough to land in a live window (matches the page's year-2 fetch)
+    cutoff_ms = int(datetime(datetime.now().year - 2, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+    MAX_ROWS = 8000
+    cols = {}
+    headers_logged, last_sig, consec_old, seen_pager = False, None, 0, None
+
+    def cell(cells, idx):
+        return cells[idx].strip() if (idx is not None and idx < len(cells)) else ""
+    def fnum(s):
+        try:
+            v = float(str(s).replace(",", "").strip()); return v if v else None
+        except Exception:
+            return None
+
     for pg in range(COLLECTED_MAX_PAGES):
         try:
             data = page.evaluate(JS_SCRAPE_PAGE)
@@ -312,45 +338,82 @@ def fetch_collected_requests(page):
             log(f"  collected-list columns: {headers}")
             if data.get("pager"): log(f"  collected-list pager: {data['pager']}")
             headers_logged = True
+            # map columns once (header row is stable across pages)
+            cols["id"]   = _col_exact(headers, "id", "determination id")
+            cols["prop"] = _col(headers, "project", "property", "name", "site")
+            cols["cnty"] = _col(headers, "county")
+            cols["city"] = _col(headers, "city", "municipal", "town")
+            cols["loc"]  = _col(headers, "location", "description", "address")
+            cols["lat"]  = _col(headers, "latitude");  cols["lat"] = cols["lat"] if cols["lat"] is not None else _col(headers, "lat")
+            cols["lon"]  = _col(headers, "longitude"); cols["lon"] = cols["lon"] if cols["lon"] is not None else _col(headers, "long", "lon")
+            # date columns, in the order we prefer to trust them
+            cols["dates"] = []
+            for kw in ("investigat", "request received", "received", "supplemental", "determination notification", "date"):
+                j = _col(headers, kw)
+                if j is not None and j not in cols["dates"]:
+                    cols["dates"].append(j)
         if not rows:
             break
-        i_prop = _col(headers, "project", "property", "name", "site")
-        i_cnty = _col(headers, "county")
-        i_city = _col(headers, "city", "municipal", "town")
-        i_loc  = _col(headers, "location", "description", "address")
-        i_lat  = _col(headers, "latitude") ; i_lat = i_lat if i_lat is not None else _col(headers, "lat")
-        i_lon  = _col(headers, "longitude"); i_lon = i_lon if i_lon is not None else _col(headers, "long", "lon")
-        i_date = (_col(headers, "investigat") or _col(headers, "determination date", "completed", "field")
-                  or _col(headers, "received", "request", "submit", "collect") or _col(headers, "date"))
-        def cell(cells, idx):
-            return cells[idx].strip() if (idx is not None and idx < len(cells)) else ""
-        def fnum(s):
-            try:
-                v = float(str(s).replace(",", "").strip()); return v if v else None
-            except Exception:
-                return None
+
+        kept_this_page = 0
         for r in rows:
             cells, did = r.get("cells") or [], r.get("id")
-            prop = cell(cells, i_prop)
+            if not did:
+                idc = cell(cells, cols.get("id"))
+                if idc and idc.isdigit(): did = idc
+            prop = cell(cells, cols.get("prop"))
             if not did and not prop:
                 continue
             key = did or prop
             if key in seen:
                 continue
+            # first date column that parses
+            ms = None
+            for j in cols.get("dates", []):
+                ms = parse_date_ms(cell(cells, j))
+                if ms: break
+            if not ms or ms < cutoff_ms:   # too old (or undatable) to ever show on a live tab
+                continue
             seen.add(key)
             sites.append({"id": str(did) if did else None, "prop": prop,
-                          "county": cell(cells, i_cnty), "city": cell(cells, i_city),
-                          "loc": cell(cells, i_loc),
-                          "lat": fnum(cell(cells, i_lat)), "lon": fnum(cell(cells, i_lon)),
-                          "ms": parse_date_ms(cell(cells, i_date))})
+                          "county": cell(cells, cols.get("cnty")), "city": cell(cells, cols.get("city")),
+                          "loc": cell(cells, cols.get("loc")),
+                          "lat": fnum(cell(cells, cols.get("lat"))), "lon": fnum(cell(cells, cols.get("lon"))),
+                          "ms": ms})
+            kept_this_page += 1
+
+        if (pg + 1) % 20 == 0:
+            log(f"  collected list: page {pg+1}, kept {len(sites)} recent so far…")
+        if len(sites) >= MAX_ROWS:
+            log(f"  collected list: hit {MAX_ROWS}-row cap, stopping.")
+            break
+        # if we've started finding recent rows and then hit 2 straight pages with none,
+        # the report is past the recent block — stop (fast when it's sorted newest-first)
+        if sites and kept_this_page == 0:
+            consec_old += 1
+            if consec_old >= 2:
+                break
+        else:
+            consec_old = 0
         sig = data.get("sig")
-        if sig and sig == last_sig:
+        if sig and sig == last_sig:   # page didn't advance
             break
         last_sig = sig
+        pager_before = data.get("pager") or ""
         if not _click_next(page):
+            log(f"  collected list: reached the last reachable page ({pg+1}); {len(sites)} recent kept.")
             break
-        page.wait_for_timeout(900)
-    log(f"  collected list: {len(sites)} request(s) captured from the DataViewer")
+        # wait for the next page to actually load (the pager label changes, e.g. 51 - 100 of ...)
+        try:
+            page.wait_for_function(
+                "(prev) => { const p=document.querySelector('.a-IRR-pagination-label,.a-IRR-pagination');"
+                " return p && p.textContent.replace(/\\s+/g,' ').trim() !== prev; }",
+                arg=pager_before, timeout=12000)
+        except Exception:
+            page.wait_for_timeout(1200)
+    else:
+        log(f"  collected list: stopped at the {COLLECTED_MAX_PAGES}-page cap.")
+    log(f"  collected list: {len(sites)} recent request(s) captured from the DataViewer")
     return sites
 
 def write_pending_js(sites):
@@ -378,12 +441,24 @@ def write_pending_js(sites):
     PENDING_JS.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 # ------------------------- output writer -----------------------------
+SUSPECT_FT = 26400   # 5 miles: a single stream/WWC segment this long is almost certainly a typo
 def rebuild_js(data):
     for did, rec in data["byId"].items():
         for f in rec["features"]:
+            s, e = f["start"], f["end"]
+            # Repair a dropped-digit latitude: same longitude but latitude ~1 degree apart
+            # (e.g. 35.4479 vs 36.4478) -> snap the outlier's whole-degree to its partner's.
+            if not f.get("point") and abs(s[1] - e[1]) < 0.05:
+                dlat = s[0] - e[0]
+                if 0.5 < abs(dlat) < 1.5:
+                    s[0] = round(s[0] - round(dlat), 6)
+                    log(f"  repaired coordinate typo in {did} '{f.get('id','')}' "
+                        f"(latitude was ~{abs(round(dlat))} degree off)")
             pt = bool(f.get("point")) or (f["start"] == f["end"])
             f["point"] = pt
             ft = 0.0 if pt else haversine_ft(f["start"], f["end"])
+            if ft > SUSPECT_FT:
+                log(f"  WARNING: {did} '{f.get('id','')}' spans {round(ft):,} ft — verify it against the letter")
             f["lenFt"] = round(ft, 1)
             f["len"] = fmt_ft(ft)
         rec["features"].sort(key=lambda f: -(f["lenFt"] or 0))
