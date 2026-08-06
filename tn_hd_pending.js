@@ -4,7 +4,7 @@
    coordinate-less ones on the county centroid, flagged 'location not added'.
    sites[] = {id, prop, county, city, loc, lat, lon, ms}  (lat/lon/ms may be null) */
 const HD_EXTRA = {
-  generatedAt: "2026-08-06 10:20 (auto)",
+  generatedAt: "2026-08-06 10:23 (auto)",
   source: "TDEC DataViewer f?p=2005:34340 (HD Requests Collected)",
   sites: [
     {id:"34524", prop:"Old Nashville Highway Property", county:"Rutherford", city:"", loc:"La Vergne, TN", lat:35.993004, lon:-86.558601, ms:1796688000000},
