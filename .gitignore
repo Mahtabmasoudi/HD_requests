@@ -2,6 +2,7 @@
 # These live on your computer only; the site on GitHub holds just the display files.
 hd_daily_update.py
 run_update.cmd
+run_update_daily.cmd
 setup.cmd
 HD_PIPELINE_README.md
 manual_features.json

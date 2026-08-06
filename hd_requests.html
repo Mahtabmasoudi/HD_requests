@@ -29,15 +29,6 @@
 <div class="sub">Five-year record of aquatic-feature evaluations from the TDEC point dataset &mdash; a leading indicator of stream &amp; wetland mitigation credit demand. <b>This dataset refreshes weekly.</b></div>
 </header>
 
-<div class="card">
-<h2>What This Map Shows</h2>
-<p>A <b>Hydrologic Determination (HD)</b> is TDEC's field ruling on whether a water feature on a property is a regulated <b>stream</b> or an unregulated <b>wet weather conveyance</b>. Developers request one before they build, so an HD is the earliest public signal that a parcel with aquatic features is headed toward disturbance &mdash; it typically <b>precedes an ARAP/&sect;401 permit by 6&ndash;18 months</b>.</p>
-<p>Every determination that carries coordinates is plotted individually as a <b>site dot</b> &mdash; click one for its <b>determination ID, property name, county, year, field office and coordinates</b>, plus a link back to the TDEC DataViewer. Pick a single <b>year tab</b> to see only that year's sites, or <b>5-Year Overall</b> to see all of them at once. Use <b>Show All Data</b> to keep every site visible while the shading still reflects the year you picked.</p>
-<p>The <b>Live</b> tabs &mdash; <b>Last 14 days</b>, <b>Last 30 days</b>, <b>Last 90 days</b> and <b>2026 year-to-date</b> &mdash; pull the <b>current</b> determination points straight from the TDEC service <b>the moment you open this page</b>, so they refresh on their own with no rebuild step. Dots are colored by how recently each determination was investigated, and the county / watershed shading and ranking table reflect the live window. On <b>every Live tab</b>, determinations whose acceptance letter has been processed show a <b>teal ring</b> — click one to see the streams &amp; WWC identified on the property, listed by <b>begin&rarr;end length</b> (longest first) with a <b>feature count</b> and total length for that point, plus each feature's TDEC / Corps classification and begin/end coordinates, drawn as segments on the map. The parsed points come from the 14- and 30-day window; because those points also fall inside the 90-day and 2026 windows, the same detail lights up there too. Requests TDEC has collected but <b>not yet placed on the map</b> &mdash; or that arrived <b>without coordinates</b> &mdash; are still shown, dropped on their <b>county centroid</b> and flagged <b>&ldquo;location not added.&rdquo;</b> Determinations carrying a <b>future investigation date</b> in TDEC&rsquo;s data appear in <b style="color:#7c3aed">purple</b>, marked <b>&ldquo;future-dated,&rdquo;</b> and are kept in the recent windows without altering the date. (The Live tabs need internet; the historical year tabs stay embedded and work offline.)</p>
-<p>Switch between <b>By County</b> and <b>By Watershed</b> with the toggle above the map. In <b>County</b> view each county is shaded by its determination activity and the HUC8 watershed boundaries stay visible as outlines. In <b>Watershed</b> view the HUC8 basins are shaded (the units mitigation credits actually trade within) and county lines drop back to outlines. Zoom in to level&nbsp;15 and the boundaries hand off &mdash; individual parcels and site dots become the clickable layer, so you can read the exact property under a determination without selecting the whole county or watershed.</p>
-<div class="warn"><b>Read this before drawing credit conclusions.</b> This dataset counts <i>requests</i>, not acres. It carries no impact quantity, stream length or wetland acreage, and does not record whether a determination came back as a stream or a wet weather conveyance. It measures <b>where development pressure is landing on aquatic features</b> &mdash; a strong leading indicator of future credit demand, not a measurement of land altered. The HD data and county boundaries are embedded and work offline; <b>watershed boundaries stream live from ArcGIS Online and need internet</b>, and the parcel layer loads from the local <code>tn_parcels.pmtiles</code> (run <code>serve_tn_map.cmd</code> and open <code>http://localhost:8777/hd_requests.html</code>). <b>This TDEC dataset is designed to refresh weekly</b> from the latest export.</div>
-</div>
-
 <div class="stats" id="stats"></div>
 
 <div class="card">
@@ -88,6 +79,7 @@
 <script src="tn_hd_data.js"></script>
 <script src="tn_hd_streams.js"></script>
 <script src="tn_hd_pending.js"></script>
+<script src="tn_hd_parcels.js"></script>
 <script src="tn_bigparcels.js"></script>
 <script src="tn_shared.js"></script>
 <script src="tn_boundaries.js"></script>
@@ -112,8 +104,8 @@ let liveMaxC=1, liveMaxW=1;
 let _liveAll=null, _liveErr=null, _liveLoading=false, _liveDataPromise=null, _liveFetchedAt=0;
 
 const map = L.map('map',{scrollWheelZoom:true}).setView([35.86,-86.3],7);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
- {attribution:'&copy; OpenStreetMap &copy; CARTO | Boundaries: TN GIS | Data: TDEC DWR',maxZoom:18,opacity:.55}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+ {attribution:'&copy; OpenStreetMap &copy; CARTO | Boundaries: TN GIS | Data: TDEC DWR',maxZoom:20,opacity:.92}).addTo(map);
 
 /* ---------- precomputed maxima for the choropleth ramps ---------- */
 const names=Object.keys(C);
@@ -152,13 +144,13 @@ function fill(n){
 /* counties step back when either parcel layer is on & we are zoomed in, so lines read */
 function pclOn(){ return document.getElementById('ckPcl').checked; }
 function anyPclOn(){ return document.getElementById('ckPcl').checked || document.getElementById('ckBig').checked; }
-function cOpacity(){ return (anyPclOn() && map.getZoom()>=PCL_MINZ) ? 0 : .87; }
+function cOpacity(){ return (anyPclOn() && map.getZoom()>=PCL_MINZ) ? 0 : .6; }
 
 // ----- county layer: filled choropleth in County view, thin outline in Watershed view -----
 function countyChoro(f){ const n=f.properties.COUNTY;
   const faded = anyPclOn() && map.getZoom()>=PCL_MINZ;
-  return {fillColor:fill(n),weight:faded?0:1,color:'#fff',fillOpacity:cOpacity(),opacity:faded?0:1}; }
-function countyOutline(f){ return {fill:false,weight:1,color:'#9aa7b2',opacity:.8}; }
+  return {fillColor:fill(n),weight:faded?0:1.4,color:'#33414f',fillOpacity:cOpacity(),opacity:faded?0:1}; }
+function countyOutline(f){ return {fill:false,weight:1,color:'#5b6b78',opacity:.75,dashArray:'3,3'}; }
 function countyStyle(f){ return geo==='county' ? countyChoro(f) : countyOutline(f); }
 
 const gj=L.geoJSON(GEO,{style:countyStyle,onEachFeature:(f,l)=>{
@@ -229,10 +221,10 @@ function wFill(w){
 // watershed layer: filled (LIGHT, semi-transparent) in Watershed view, dashed outline in County view
 function wsChoro(f){ const huc=wsHucOf(f);
   if(liveMode){ const v=liveWshed[huc]||0;
-    return {color:'#ffffff',weight:1,opacity:.9,fill:true,fillColor:v?ramp(BLU,Math.sqrt(v/liveMaxW)):'#f2f4f6',fillOpacity:v?.55:.16}; }
+    return {color:'#33414f',weight:1.1,opacity:.9,fill:true,fillColor:v?ramp(BLU,Math.sqrt(v/liveMaxW)):'#f2f4f6',fillOpacity:v?.55:.16}; }
   const w=WCBY[huc];
-  return {color:'#ffffff',weight:1,opacity:.9,fill:true,fillColor:w?wFill(w):'#f2f4f6',fillOpacity:(w&&w.tot)?.5:.16}; }
-function wsOutline(f){ return {fill:false,weight:1.4,color:'#0d6b8a',opacity:.75,dashArray:'6,4'}; }
+  return {color:'#33414f',weight:1.1,opacity:.9,fill:true,fillColor:w?wFill(w):'#f2f4f6',fillOpacity:(w&&w.tot)?.5:.16}; }
+function wsOutline(f){ return {fill:false,weight:2,color:'#0a6b7a',opacity:.92,dashArray:'5,4'}; }
 function wsStyleFor(f){ return geo==='wshed' ? wsChoro(f) : wsOutline(f); }
 
 let wsLyr=null, wsBuilding=false;
@@ -288,6 +280,8 @@ function wFly(huc){ const w=WCBY[huc]; if(!w||!w.lat) return; map.flyTo([w.lat,w
 /* ================= Individual HD sites ================= */
 const siteLyr = L.layerGroup().addTo(map);
 const hdStreamLyr = L.layerGroup().addTo(map);   // drawn STR/WWC segments for enriched live sites
+const hdParcelLyr = L.layerGroup().addTo(map);   // outlines of parcels that contain a determination
+function hdParcelFor(s){ try{ return (typeof HD_PARCELS!=='undefined' && HD_PARCELS.byId) ? HD_PARCELS.byId[String(s.id)] : null; }catch(e){ return null; } }
 const YCOL = {2021:'#1a56db', 2022:'#111111', 2023:'#f2c200', 2024:'#ec4899', 2025:'#b8342a'};
 function siteRadius(){ const z=map.getZoom();
   return z>=13 ? 7 : z>=11 ? 5 : z>=9 ? 3.6 : 2.6; }
@@ -756,7 +750,6 @@ function hdStreamsHtml(rec){
     '</div>';
 }
 function drawHdSegments(rec){
-  hdStreamLyr.clearLayers();
   rec.features.forEach(f=>{
     const col=hdStreamColor(f);
     const lbl=esc(f.id)+(f.len?' · '+esc(f.len):'');
@@ -968,7 +961,7 @@ function liveWPop(h,ll){
     (list||'<div style="color:#94a2ae;font-size:12px">no recent determinations</div>')+more).openOn(map);
 }
 function liveDrawSites(){
-  siteLyr.clearLayers(); hdStreamLyr.clearLayers();
+  siteLyr.clearLayers(); hdStreamLyr.clearLayers(); hdParcelLyr.clearLayers();
   if(!document.getElementById('ckSite').checked){ setHint('siteHint','HD sites hidden · showing sized dots'); return; }
   const r=siteRadius(), withStreams=streamsActive();
   let enriched=0, approxN=0, futureN=0;
@@ -982,6 +975,8 @@ function liveDrawSites(){
     const ring = rec ? '#0d7d8a' : (appx ? APPROX_RING : '#fff');
     const numericId = /^\d+$/.test(String(s.id));
     const idLabel = numericId ? ('HD ID '+s.id) : 'HD request (pending ID)';
+    const par = hdParcelFor(s);
+    const parcelRow = par ? ('<div class="sr"><span>Parcel</span><span>'+(par.owner?esc(par.owner):'boundary shown')+(par.acres?(' \u00b7 '+esc(par.acres)+' ac'):'')+'</span></div>') : '';
     const badges =
       (fut?'<div class="sr"><span>Status</span><span style="color:'+FUTURE_COL+';font-weight:700">⏳ Future-dated</span></div>':'')+
       (appx?'<div class="sr"><span>Location</span><span style="color:'+APPROX_RING+';font-weight:700">⚠ Location not added — placed within '+esc(s.county||'the')+' County (approx.)</span></div>':'')+
@@ -1001,9 +996,11 @@ function liveDrawSites(){
       (s.loc?'<div class="sr"><span>Location</span><span>'+esc(s.loc)+'</span></div>':'')+
       '<div class="sr"><span>Investigated</span><span>'+fmtDate(s.ms)+' ('+daysAgo(s.ms)+(fut?' · future-dated':'')+')</span></div>'+
       coordRow+
+      parcelRow+
       (rec?hdStreamsHtml(rec):'')+
       link+'</div>',{maxWidth:340});
-    if(rec){ m.on('popupopen',()=>drawHdSegments(rec)); m.on('popupclose',()=>hdStreamLyr.clearLayers()); }
+    if(rec){ drawHdSegments(rec); }   // always show the streams/WWC segments, no click needed
+    if(par && par.ring && par.ring.length>2){ L.polygon(par.ring,{color:'#d97706',weight:2,opacity:.95,fill:true,fillColor:'#f59e0b',fillOpacity:.08,pane:'markerPane'}).addTo(hdParcelLyr).bindTooltip('Parcel'+(par.owner?': '+esc(par.owner):''),{sticky:true}); }
   });
   const enr = withStreams ? (enriched?' · '+enriched+' with stream detail':'') : '';
   const flags = (futureN?' · '+futureN+' future-dated':'')+(approxN?' · '+approxN+' approx-located':'');
@@ -1047,6 +1044,10 @@ function liveMsgStats(){
       '<div class="d fl" style="margin-top:6px;font-weight:500">Pulling the current determinations from the TDEC Division of Water Resources live service…</div></div>';
   }
 }
+function updatedStamp(){
+  try{ if(typeof STREAMS!=='undefined' && STREAMS.generatedAt) return STREAMS.generatedAt.replace(/\s*\(auto\)\s*/,''); }catch(e){}
+  return _liveFetchedAt ? fmtDateTime(_liveFetchedAt) : '';
+}
 function liveStatsRender(){
   const tot=liveSites.length, activeC=Object.keys(liveCounty).length;
   let topN='—',topV=0; for(const k in liveCounty){ if(liveCounty[k]>topV){ topV=liveCounty[k]; topN=k; } }
@@ -1056,11 +1057,11 @@ function liveStatsRender(){
    '<div class="st"><div class="k">Counties Active</div><div class="v">'+activeC+'</div><div class="d fl">of 95</div></div>'+
    '<div class="st"><div class="k">Most Active</div><div class="v" style="font-size:20px">'+esc(topN)+'</div><div class="d fl">'+topV+' determination'+(topV===1?'':'s')+'</div></div>'+
    '<div class="st"><div class="k">Most Recent</div><div class="v" style="font-size:18px">'+(newest?daysAgo(newest):'—')+'</div><div class="d fl">'+(newest?fmtDate(newest):'no records')+'</div></div>'+
-   '<div class="st"><div class="k">Live From TDEC</div><div class="v" style="font-size:15px;color:#0d7d8a">● on page load</div><div class="d fl">pulled '+fmtDateTime(_liveFetchedAt||Date.now())+'</div></div>';
+   '<div class="st"><div class="k">Updated</div><div class="v" style="font-size:15px;color:#0d7d8a">'+esc(updatedStamp())+'</div><div class="d fl">from TDEC</div></div>';
 }
 function liveTableRender(){
   document.getElementById('sumh').textContent=liveMode.lab+' — recent activity';
-  document.getElementById('ys').innerHTML='<h3>'+esc(liveMode.lab)+'</h3><p>Hydrologic Determinations collected across Tennessee, pulled <b>live from the TDEC Division of Water Resources</b> point service when this page loaded'+(_liveFetchedAt?' ('+fmtDateTime(_liveFetchedAt)+')':'')+'. <b>'+liveSites.length.toLocaleString()+'</b> determination'+(liveSites.length===1?'':'s')+' fall in this window — the earliest public signal of where aquatic-feature development pressure is landing right now. Click a '+(geo==='wshed'?'watershed':'county')+' or dot for the underlying records.</p>';
+  document.getElementById('ys').innerHTML='<h3>'+esc(liveMode.lab)+'</h3><p>Hydrologic Determinations collected across Tennessee from the TDEC Division of Water Resources point service, <b>updated '+esc(updatedStamp())+'</b>. <b>'+liveSites.length.toLocaleString()+'</b> determination'+(liveSites.length===1?'':'s')+' fall in this window — the earliest public signal of where aquatic-feature development pressure is landing right now. Click a '+(geo==='wshed'?'watershed':'county')+' or dot for the underlying records.</p>';
   const tb=document.getElementById('tb');
   if(geo==='wshed'){
     const rows=Object.keys(liveWshed).map(h=>({h,v:liveWshed[h],name:liveWName[h]||(WCBY[h]&&WCBY[h].name)||('HUC '+h)})).sort((a,b)=>b.v-a.v).slice(0,15);
@@ -1082,7 +1083,7 @@ function liveTableRender(){
 function liveFlyC(n){ const o=liveCC[n]; if(o&&o.lat){ map.flyTo([o.lat,o.lon],10,{duration:.8}); setTimeout(()=>livePop(n,[o.lat,o.lon]),850); } }
 function liveFlyW(h){ const o=liveWC[h]; if(o&&o.lat){ map.flyTo([o.lat,o.lon],9,{duration:.8}); setTimeout(()=>liveWPop(h,[o.lat,o.lon]),850); } }
 function liveRender(){
-  if(_liveLoading || _liveErr){ liveMsgStats(); siteLyr.clearLayers(); dots.clearLayers(); hdStreamLyr.clearLayers();
+  if(_liveLoading || _liveErr){ liveMsgStats(); siteLyr.clearLayers(); dots.clearLayers(); hdStreamLyr.clearLayers(); hdParcelLyr.clearLayers();
     document.getElementById('leg').innerHTML=_liveErr?'':'<div class="li" style="color:#7c8b97">Loading current determinations from TDEC…</div>';
     document.getElementById('sumh').textContent=liveMode?liveMode.lab:'Recent activity';
     document.getElementById('ys').innerHTML=''; document.getElementById('tb').innerHTML=''; document.getElementById('th').innerHTML='';
@@ -1106,7 +1107,7 @@ function selectLive(key){
 }
 function exitLive(){
   liveMode=null;
-  hdStreamLyr.clearLayers();
+  hdStreamLyr.clearLayers(); hdParcelLyr.clearLayers();
   document.getElementById('mode').style.display='flex';
   const ad=document.getElementById('allData'); if(ad) ad.style.display='';
   document.querySelectorAll('.yb[data-live]').forEach(x=>x.classList.remove('on'));
