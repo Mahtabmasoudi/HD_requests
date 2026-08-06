@@ -35,6 +35,16 @@ that isn't already a live point:
 You can turn the scrape off with `SCRAPE_COLLECTED = False` in the CONFIG block. If a run's scrape
 fails or returns nothing, the previous `tn_hd_pending.js` is left untouched (never blanked).
 
+## Stream/WWC detail is kept, not rolling
+
+Once a determination's acceptance letter has been read, its streams & WWC land in
+`tn_hd_streams.js` keyed by determination ID and **stay there permanently** — the file is
+cumulative, never pruned by date. So as a point ages out of the 14- and 30-day windows it keeps
+its full detail on the **90-day and 2026** tabs; nothing is lost when it crosses 30 days. (The
+"window" label inside the file is just descriptive.) Letters for the collected-list requests are
+read a batch at a time — `LETTER_BUDGET` per run — so even a determination whose letter is posted
+*after* it ages past 30 days still gets picked up and its detail added.
+
 ## First-time setup (once)
 
 1. If you don't have Python: install it from <https://www.python.org/downloads/> and
@@ -102,6 +112,10 @@ Open `hd_daily_update.py` in Notepad — the top has a small **CONFIG** block:
 - `SCRAPE_COLLECTED = True` — also scrape the "HD Requests Collected" list into `tn_hd_pending.js`
   (set `False` to skip it). If the first run's column names look off in `update_log.txt`
   (it prints `collected-list columns: [...]`), send me that line and I'll tune the mapping.
+- `LETTER_BUDGET = 60` — how many collected-list acceptance letters to read per run for their
+  stream/WWC detail (no-coordinate requests first). It's cached, so every request is fetched only
+  once and the backfill fills in over a few runs. Raise it to backfill faster (each letter adds
+  ~1–2 seconds to the run); set to `0` to skip letter-reading for collected requests entirely.
 
 ## If something goes wrong
 

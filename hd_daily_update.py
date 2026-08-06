@@ -27,6 +27,8 @@ SELF_TEST     = False   # verified working 2026-07-28. Set True again only to re
 SCRAPE_COLLECTED    = True   # also scrape TDEC's "HD Requests Collected" list (Page 2) so requests
                              # that aren't on the ArcGIS map yet (or have no coordinates) still show.
 COLLECTED_MAX_PAGES = 400    # safety cap on report pagination (each page ~15 rows)
+LETTER_BUDGET       = 60     # per run: how many collected-list letters to read for stream/WWC detail
+                             # (no-coordinate requests first). Cached, so it fills in over a few runs.
 # ---------------------------------------------------------------------
 
 HERE      = Path(__file__).resolve().parent
@@ -479,7 +481,7 @@ def rebuild_js(data):
     lines.append("   byId[<DETERMINATION_ID>] = {prop, county, count, features:[{id,len,lenFt,corps,tdec,point,start,end}]} */")
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     lines.append("const STREAMS = {")
-    lines.append(f' generatedAt:"{stamp} (auto)", window:"last {DAYS_WINDOW} days (rolling); reused by 90-day & 2026 tabs",')
+    lines.append(f' generatedAt:"{stamp} (auto)", window:"cumulative - detail is retained as points age; shown on the 14/30/90-day & 2026 tabs",')
     lines.append(" byId:{")
     for did in sorted(data["byId"], key=lambda x: int(x)):
         r = data["byId"][did]
@@ -603,24 +605,24 @@ def main():
                    if pt["id"] not in known and checked.get(pt["id"], {}).get("status") not in TERMINAL]
         log(f"Determinations to check (new, or awaiting a letter): {len(new_ids)}")
 
-        for did in new_ids:
-            m = meta[did]
+        def process_letter(did, prop, county):
+            """Fetch & parse one determination's acceptance letter; update data/checked.
+            Returns 'added' when stream/WWC features are stored, else a status string."""
+            nonlocal feats_added
+            cmeta = {"prop": prop, "county": county}
             try:
                 res = get_letter(page, did)
             except Exception as e:
-                log(f"  {did} {m['prop']}: could not load ({e}) - will re-check next run")
-                continue
-
-            cmeta = {"prop": m["prop"], "county": m["county"]}
+                log(f"  {did} {prop}: could not load ({e}) - will re-check next run")
+                return "error"
             if res.get("status") == "no-letter":
                 checked[did] = {**cmeta, "status": "pending"}
-                log(f"  {did} {m['prop']}: no acceptance letter yet - will re-check")
-                continue
+                log(f"  {did} {prop}: no acceptance letter yet - will re-check")
+                return "pending"
             if not res.get("magic", "").startswith("25504446"):   # %PDF
                 checked[did] = {**cmeta, "status": "nonpdf", "ct": res.get("ct", "")}
-                log(f"  {did} {m['prop']}: letter is not a PDF - flagged for manual review")
-                continue
-
+                log(f"  {did} {prop}: letter is not a PDF - flagged for manual review")
+                return "nonpdf"
             pdf_bytes = base64.b64decode(res["b64"])
             try:
                 feats, had_text = parse_pdf_features(pdf_bytes)
@@ -628,21 +630,27 @@ def main():
                 raise
             except Exception as e:
                 checked[did] = {**cmeta, "status": "image"}
-                log(f"  {did} {m['prop']}: parse error ({e}) - flagged for manual review")
-                continue
-
+                log(f"  {did} {prop}: parse error ({e}) - flagged for manual review")
+                return "image"
             if feats:
-                data["byId"][did] = {"prop": m["prop"], "county": m["county"], "features": feats}
+                data["byId"][did] = {"prop": prop, "county": county, "features": feats}
                 checked.pop(did, None)
-                added.append(f"{did} {m['prop']} ({m['county']}): {len(feats)} feature(s)")
+                added.append(f"{did} {prop} ({county}): {len(feats)} feature(s)")
                 feats_added += len(feats)
-                log(f"  {did} {m['prop']}: +{len(feats)} stream/WWC feature(s)")
-            elif not had_text:
+                log(f"  {did} {prop}: +{len(feats)} stream/WWC feature(s)")
+                return "added"
+            if not had_text:
                 checked[did] = {**cmeta, "status": "image"}
-                log(f"  {did} {m['prop']}: letter table is an IMAGE - flagged for manual review")
-            else:
-                checked[did] = {**cmeta, "status": "empty"}
-                log(f"  {did} {m['prop']}: no stream/WWC features (wetlands/none)")
+                log(f"  {did} {prop}: letter table is an IMAGE - flagged for manual review")
+                return "image"
+            checked[did] = {**cmeta, "status": "empty"}
+            log(f"  {did} {prop}: no stream/WWC features (wetlands/none)")
+            return "empty"
+
+        processed = set()
+        for did in new_ids:
+            process_letter(did, meta[did]["prop"], meta[did]["county"])
+            processed.add(did)
 
         # ----- collect the full DataViewer request list (incl. no-coordinate ones) -----
         if SCRAPE_COLLECTED:
@@ -650,6 +658,36 @@ def main():
                 collected = fetch_collected_requests(page)
             except Exception as e:
                 log(f"  (collected-list scrape failed: {e} - keeping any previous tn_hd_pending.js)")
+
+        # ----- read letters for collected requests too, so no-coordinate overlay points show the
+        #        same stream/WWC detail as mapped points. No-coordinate ones first; capped per run. -----
+        if SCRAPE_COLLECTED and collected and LETTER_BUDGET > 0:
+            cands = []
+            for c in collected:
+                did = str(c["id"]) if c.get("id") else None
+                if not did or did in processed or did in data["byId"]:
+                    continue
+                if checked.get(did, {}).get("status") in TERMINAL:
+                    continue
+                cands.append(c)
+            # no-coordinate requests first, then never-checked, then most recent
+            cands.sort(key=lambda c: (
+                0 if (c.get("lat") is None or c.get("lon") is None) else 1,
+                0 if str(c["id"]) not in checked else 1,
+                -(c.get("ms") or 0)))
+            budget, enriched = LETTER_BUDGET, 0
+            log(f"Reading acceptance letters for collected requests (budget {budget}, "
+                f"{len(cands)} candidate(s))…")
+            for c in cands:
+                if budget <= 0:
+                    break
+                did = str(c["id"])
+                processed.add(did)
+                budget -= 1
+                if process_letter(did, c.get("prop", ""), c.get("county", "")) == "added":
+                    enriched += 1
+            log(f"Collected-letter pass: read {LETTER_BUDGET - budget}, added detail to {enriched} "
+                f"request(s); {max(0, len(cands) - (LETTER_BUDGET - budget))} left for future runs.")
         browser.close()
 
     # write the "requests not yet on the map" overlay file (only when the scrape returned rows,
