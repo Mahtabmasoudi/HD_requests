@@ -5,7 +5,7 @@
    Shown on the 14 / 30 / 90-day and 2026 live tabs of hd_requests.html.
    byId[<DETERMINATION_ID>] = {prop, county, count, features:[{id,len,lenFt,corps,tdec,point,start,end}]} */
 const STREAMS = {
- generatedAt:"2026-08-04 08:55 (auto)", window:"last 30 days (rolling); reused by 90-day & 2026 tabs",
+ generatedAt:"2026-08-06 08:25 (auto)", window:"last 30 days (rolling); reused by 90-day & 2026 tabs",
  byId:{
   "34774": {prop:"Wiley Oakley Dr. Crossover Bridge", county:"Sevier", count:7, features:[
     {id:"Channel 2a", len:"321 ft", lenFt:321.5, corps:null, tdec:"WWC", point:false, start:[35.7337,-83.52121], end:[35.73445,-83.52064]},
@@ -195,6 +195,18 @@ const STREAMS = {
     {id:"WWC-01", len:"394 ft", lenFt:393.8, corps:null, tdec:"WWC", point:false, start:[35.184789,-89.852216], end:[35.184061,-89.853191]},
     {id:"WWC-03", len:"99 ft", lenFt:99.4, corps:null, tdec:"WWC", point:false, start:[35.184062,-89.852844], end:[35.184073,-89.853177]},
     {id:"WWC-02", len:"52 ft", lenFt:51.9, corps:null, tdec:"WWC", point:false, start:[35.184273,-89.853145], end:[35.184131,-89.853133]}
+  ]},
+  "35356": {prop:"PHCPUD Gas Extension Right-of-Way of Point Pleasant Road", county:"Henry", count:10, features:[
+    {id:"L2 Wet weather", len:"364,777 ft", lenFt:364776.6, corps:null, tdec:"WWC", point:false, start:[35.447967,-88.128698], end:[36.447868,-88.128693]},
+    {id:"L11 Wet Weather", len:"388 ft", lenFt:387.5, corps:null, tdec:"WWC", point:false, start:[36.463672,-88.137153], end:[36.464734,-88.137185]},
+    {id:"L1 Wet Weather", len:"375 ft", lenFt:374.5, corps:null, tdec:"WWC", point:false, start:[36.439561,-88.125527], end:[36.438567,-88.125208]},
+    {id:"L5 Wet Weather", len:"285 ft", lenFt:284.7, corps:null, tdec:"WWC", point:false, start:[36.449835,-88.13004], end:[36.450509,-88.130529]},
+    {id:"L10 Wet Weather", len:"177 ft", lenFt:176.6, corps:null, tdec:"WWC", point:false, start:[36.462386,-88.13589], end:[36.462349,-88.13649]},
+    {id:"L3 Wet weather", len:"118 ft", lenFt:117.7, corps:null, tdec:"WWC", point:false, start:[36.447576,-88.1286], end:[36.447807,-88.12888]},
+    {id:"L4 Wet Weather", len:"76 ft", lenFt:76.2, corps:null, tdec:"WWC", point:false, start:[36.449147,-88.129785], end:[36.448961,-88.129903]},
+    {id:"L8 Wet Weather", len:"74 ft", lenFt:73.9, corps:null, tdec:"WWC", point:false, start:[36.45832,-88.134989], end:[36.458206,-88.135197]},
+    {id:"L7 Wet Weather", len:"63 ft", lenFt:62.5, corps:null, tdec:"WWC", point:false, start:[36.458158,-88.133391], end:[36.457987,-88.133376]},
+    {id:"L6 Wet Weather", len:"60 ft", lenFt:60.3, corps:null, tdec:"WWC", point:false, start:[36.45729,-88.132265], end:[36.457265,-88.132468]}
   ]},
   "35361": {prop:"Canaan Baptist Church of Christ", county:"Knox", count:1, features:[
     {id:"Channel 1", len:"563 ft", lenFt:563.0, corps:null, tdec:"WWC", point:false, start:[35.992,-83.8691], end:[35.9913,-83.8674]}
