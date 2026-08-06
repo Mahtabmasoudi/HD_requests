@@ -79,7 +79,6 @@
 <script src="tn_hd_data.js"></script>
 <script src="tn_hd_streams.js"></script>
 <script src="tn_hd_pending.js"></script>
-<script src="tn_hd_parcels.js"></script>
 <script src="tn_bigparcels.js"></script>
 <script src="tn_shared.js"></script>
 <script src="tn_boundaries.js"></script>
@@ -280,8 +279,6 @@ function wFly(huc){ const w=WCBY[huc]; if(!w||!w.lat) return; map.flyTo([w.lat,w
 /* ================= Individual HD sites ================= */
 const siteLyr = L.layerGroup().addTo(map);
 const hdStreamLyr = L.layerGroup().addTo(map);   // drawn STR/WWC segments for enriched live sites
-const hdParcelLyr = L.layerGroup().addTo(map);   // outlines of parcels that contain a determination
-function hdParcelFor(s){ try{ return (typeof HD_PARCELS!=='undefined' && HD_PARCELS.byId) ? HD_PARCELS.byId[String(s.id)] : null; }catch(e){ return null; } }
 const YCOL = {2021:'#1a56db', 2022:'#111111', 2023:'#f2c200', 2024:'#ec4899', 2025:'#b8342a'};
 function siteRadius(){ const z=map.getZoom();
   return z>=13 ? 7 : z>=11 ? 5 : z>=9 ? 3.6 : 2.6; }
@@ -961,7 +958,7 @@ function liveWPop(h,ll){
     (list||'<div style="color:#94a2ae;font-size:12px">no recent determinations</div>')+more).openOn(map);
 }
 function liveDrawSites(){
-  siteLyr.clearLayers(); hdStreamLyr.clearLayers(); hdParcelLyr.clearLayers();
+  siteLyr.clearLayers(); hdStreamLyr.clearLayers();
   if(!document.getElementById('ckSite').checked){ setHint('siteHint','HD sites hidden · showing sized dots'); return; }
   const r=siteRadius(), withStreams=streamsActive();
   let enriched=0, approxN=0, futureN=0;
@@ -975,8 +972,6 @@ function liveDrawSites(){
     const ring = rec ? '#0d7d8a' : (appx ? APPROX_RING : '#fff');
     const numericId = /^\d+$/.test(String(s.id));
     const idLabel = numericId ? ('HD ID '+s.id) : 'HD request (pending ID)';
-    const par = hdParcelFor(s);
-    const parcelRow = par ? ('<div class="sr"><span>Parcel</span><span>'+(par.owner?esc(par.owner):'boundary shown')+(par.acres?(' \u00b7 '+esc(par.acres)+' ac'):'')+'</span></div>') : '';
     const badges =
       (fut?'<div class="sr"><span>Status</span><span style="color:'+FUTURE_COL+';font-weight:700">⏳ Future-dated</span></div>':'')+
       (appx?'<div class="sr"><span>Location</span><span style="color:'+APPROX_RING+';font-weight:700">⚠ Location not added — placed within '+esc(s.county||'the')+' County (approx.)</span></div>':'')+
@@ -996,11 +991,9 @@ function liveDrawSites(){
       (s.loc?'<div class="sr"><span>Location</span><span>'+esc(s.loc)+'</span></div>':'')+
       '<div class="sr"><span>Investigated</span><span>'+fmtDate(s.ms)+' ('+daysAgo(s.ms)+(fut?' · future-dated':'')+')</span></div>'+
       coordRow+
-      parcelRow+
       (rec?hdStreamsHtml(rec):'')+
       link+'</div>',{maxWidth:340});
     if(rec){ drawHdSegments(rec); }   // always show the streams/WWC segments, no click needed
-    if(par && par.ring && par.ring.length>2){ L.polygon(par.ring,{color:'#d97706',weight:2,opacity:.95,fill:true,fillColor:'#f59e0b',fillOpacity:.08,pane:'markerPane'}).addTo(hdParcelLyr).bindTooltip('Parcel'+(par.owner?': '+esc(par.owner):''),{sticky:true}); }
   });
   const enr = withStreams ? (enriched?' · '+enriched+' with stream detail':'') : '';
   const flags = (futureN?' · '+futureN+' future-dated':'')+(approxN?' · '+approxN+' approx-located':'');
@@ -1083,7 +1076,7 @@ function liveTableRender(){
 function liveFlyC(n){ const o=liveCC[n]; if(o&&o.lat){ map.flyTo([o.lat,o.lon],10,{duration:.8}); setTimeout(()=>livePop(n,[o.lat,o.lon]),850); } }
 function liveFlyW(h){ const o=liveWC[h]; if(o&&o.lat){ map.flyTo([o.lat,o.lon],9,{duration:.8}); setTimeout(()=>liveWPop(h,[o.lat,o.lon]),850); } }
 function liveRender(){
-  if(_liveLoading || _liveErr){ liveMsgStats(); siteLyr.clearLayers(); dots.clearLayers(); hdStreamLyr.clearLayers(); hdParcelLyr.clearLayers();
+  if(_liveLoading || _liveErr){ liveMsgStats(); siteLyr.clearLayers(); dots.clearLayers(); hdStreamLyr.clearLayers();
     document.getElementById('leg').innerHTML=_liveErr?'':'<div class="li" style="color:#7c8b97">Loading current determinations from TDEC…</div>';
     document.getElementById('sumh').textContent=liveMode?liveMode.lab:'Recent activity';
     document.getElementById('ys').innerHTML=''; document.getElementById('tb').innerHTML=''; document.getElementById('th').innerHTML='';
@@ -1107,7 +1100,7 @@ function selectLive(key){
 }
 function exitLive(){
   liveMode=null;
-  hdStreamLyr.clearLayers(); hdParcelLyr.clearLayers();
+  hdStreamLyr.clearLayers();
   document.getElementById('mode').style.display='flex';
   const ad=document.getElementById('allData'); if(ad) ad.style.display='';
   document.querySelectorAll('.yb[data-live]').forEach(x=>x.classList.remove('on'));

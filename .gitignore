@@ -11,3 +11,6 @@ needs_review.txt
 update_log.txt
 # local parcel tiles (large; read by the updater, never published)
 *.pmtiles
+
+# per-determination selected parcels (reverted; kept local only)
+tn_hd_parcels.js
