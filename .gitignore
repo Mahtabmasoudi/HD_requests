@@ -9,3 +9,5 @@ manual_features.json
 hd_data.json
 needs_review.txt
 update_log.txt
+# local parcel tiles (large; read by the updater, never published)
+*.pmtiles
