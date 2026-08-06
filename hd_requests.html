@@ -33,7 +33,7 @@
 <h2>What This Map Shows</h2>
 <p>A <b>Hydrologic Determination (HD)</b> is TDEC's field ruling on whether a water feature on a property is a regulated <b>stream</b> or an unregulated <b>wet weather conveyance</b>. Developers request one before they build, so an HD is the earliest public signal that a parcel with aquatic features is headed toward disturbance &mdash; it typically <b>precedes an ARAP/&sect;401 permit by 6&ndash;18 months</b>.</p>
 <p>Every determination that carries coordinates is plotted individually as a <b>site dot</b> &mdash; click one for its <b>determination ID, property name, county, year, field office and coordinates</b>, plus a link back to the TDEC DataViewer. Pick a single <b>year tab</b> to see only that year's sites, or <b>5-Year Overall</b> to see all of them at once. Use <b>Show All Data</b> to keep every site visible while the shading still reflects the year you picked.</p>
-<p>The <b>Live</b> tabs &mdash; <b>Last 14 days</b>, <b>Last 30 days</b>, <b>Last 90 days</b> and <b>2026 year-to-date</b> &mdash; pull the <b>current</b> determination points straight from the TDEC service <b>the moment you open this page</b>, so they refresh on their own with no rebuild step. Dots are colored by how recently each determination was investigated, and the county / watershed shading and ranking table reflect the live window. On <b>every Live tab</b>, determinations whose acceptance letter has been processed show a <b>teal ring</b> — click one to see the streams &amp; WWC identified on the property, listed by <b>begin&rarr;end length</b> (longest first) with a <b>feature count</b> and total length for that point, plus each feature's TDEC / Corps classification and begin/end coordinates, drawn as segments on the map. The parsed points come from the 14- and 30-day window; because those points also fall inside the 90-day and 2026 windows, the same detail lights up there too. (The Live tabs need internet; the historical year tabs stay embedded and work offline.)</p>
+<p>The <b>Live</b> tabs &mdash; <b>Last 14 days</b>, <b>Last 30 days</b>, <b>Last 90 days</b> and <b>2026 year-to-date</b> &mdash; pull the <b>current</b> determination points straight from the TDEC service <b>the moment you open this page</b>, so they refresh on their own with no rebuild step. Dots are colored by how recently each determination was investigated, and the county / watershed shading and ranking table reflect the live window. On <b>every Live tab</b>, determinations whose acceptance letter has been processed show a <b>teal ring</b> — click one to see the streams &amp; WWC identified on the property, listed by <b>begin&rarr;end length</b> (longest first) with a <b>feature count</b> and total length for that point, plus each feature's TDEC / Corps classification and begin/end coordinates, drawn as segments on the map. The parsed points come from the 14- and 30-day window; because those points also fall inside the 90-day and 2026 windows, the same detail lights up there too. Requests TDEC has collected but <b>not yet placed on the map</b> &mdash; or that arrived <b>without coordinates</b> &mdash; are still shown, dropped on their <b>county centroid</b> and flagged <b>&ldquo;location not added.&rdquo;</b> Determinations carrying a <b>future investigation date</b> in TDEC&rsquo;s data appear in <b style="color:#7c3aed">purple</b>, marked <b>&ldquo;future-dated,&rdquo;</b> and are kept in the recent windows without altering the date. (The Live tabs need internet; the historical year tabs stay embedded and work offline.)</p>
 <p>Switch between <b>By County</b> and <b>By Watershed</b> with the toggle above the map. In <b>County</b> view each county is shaded by its determination activity and the HUC8 watershed boundaries stay visible as outlines. In <b>Watershed</b> view the HUC8 basins are shaded (the units mitigation credits actually trade within) and county lines drop back to outlines. Zoom in to level&nbsp;15 and the boundaries hand off &mdash; individual parcels and site dots become the clickable layer, so you can read the exact property under a determination without selecting the whole county or watershed.</p>
 <div class="warn"><b>Read this before drawing credit conclusions.</b> This dataset counts <i>requests</i>, not acres. It carries no impact quantity, stream length or wetland acreage, and does not record whether a determination came back as a stream or a wet weather conveyance. It measures <b>where development pressure is landing on aquatic features</b> &mdash; a strong leading indicator of future credit demand, not a measurement of land altered. The HD data and county boundaries are embedded and work offline; <b>watershed boundaries stream live from ArcGIS Online and need internet</b>, and the parcel layer loads from the local <code>tn_parcels.pmtiles</code> (run <code>serve_tn_map.cmd</code> and open <code>http://localhost:8777/hd_requests.html</code>). <b>This TDEC dataset is designed to refresh weekly</b> from the latest export.</div>
 </div>
@@ -87,6 +87,7 @@
 <!-- data (weekly-updating TDEC dataset) + shared component library -->
 <script src="tn_hd_data.js"></script>
 <script src="tn_hd_streams.js"></script>
+<script src="tn_hd_pending.js"></script>
 <script src="tn_bigparcels.js"></script>
 <script src="tn_shared.js"></script>
 <script src="tn_boundaries.js"></script>
@@ -773,6 +774,30 @@ function drawHdSegments(rec){
 const CANON={}; (GEO.features||[]).forEach(f=>{ const n=f.properties&&f.properties.COUNTY; if(n) CANON[n.toUpperCase()]=n; });
 function canonCounty(raw){ const s=(raw||'').replace(/\s+county\s*$/i,'').trim().toUpperCase(); return CANON[s]||null; }
 
+/* centroid for a county name — historical D.counties first, else average of its GEO polygon
+   vertices. Used to place determinations that have no coordinates ("location not added"). */
+const _ccCache={};
+function countyCentroid(raw){
+  const n=canonCounty(raw); if(!n) return null;
+  if(n in _ccCache) return _ccCache[n];
+  let ll=null;
+  if(C[n] && isFinite(C[n].lat) && isFinite(C[n].lon)) ll={lat:C[n].lat, lon:C[n].lon};
+  else {
+    const f=(GEO.features||[]).find(f=>f.properties && (f.properties.COUNTY||'').toUpperCase()===n.toUpperCase());
+    if(f && f.geometry){
+      const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]
+        :(f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[]);
+      let sx=0,sy=0,k=0;
+      polys.forEach(poly=>poly[0] && poly[0].forEach(pt=>{ sx+=pt[0]; sy+=pt[1]; k++; }));
+      if(k) ll={lat:sy/k, lon:sx/k};
+    }
+  }
+  return (_ccCache[n]=ll);
+}
+function isFuture(ms){ return isFinite(ms) && ms>Date.now(); }
+const FUTURE_COL='#7c3aed';   // future-dated dot color
+const APPROX_RING='#b8342a';  // ring for county-centroid (no-coordinate) dots
+
 /* point-in-polygon against a GeoJSON Polygon / MultiPolygon (lon,lat) */
 function ptInGeo(lng,lat,geom){
   const polys = geom.type==='Polygon'?[geom.coordinates]:(geom.type==='MultiPolygon'?geom.coordinates:[]);
@@ -806,8 +831,13 @@ async function fetchHDsince(isoDate){
       let lat=+a.LATITUDE, lon=+a.LONGITUDE;
       if(!isFinite(lat)||!lat){ lat=+g.y; lon=+g.x; }
       const ms=+a.INVESTIGATION_DATE;
-      if(!isFinite(lat)||!isFinite(lon)||!lat||!lon||!isFinite(ms)) return;
-      out.push({id:a.DETERMINATION_ID, lat, lon, ms, huc:null,
+      if(!isFinite(ms)) return;                         // no investigation date -> can't window it
+      let approx=false, noLatLon=false;
+      if(!isFinite(lat)||!isFinite(lon)||!lat||!lon){   // missing coordinates -> county centroid
+        const cc=countyCentroid(a.COUNTY); if(!cc) return;
+        lat=cc.lat; lon=cc.lon; approx=true; noLatLon=true;
+      }
+      out.push({id:a.DETERMINATION_ID, lat, lon, ms, huc:null, approx, noLatLon,
         county:(a.COUNTY||'').trim(), prop:a.PROPERTY_NAME||'', loc:a.LOCATION||''});
     });
     if(fs.length<page) break;
@@ -815,12 +845,62 @@ async function fetchHDsince(isoDate){
   }
   return out;
 }
+/* Merge TDEC "HD Requests Collected" entries (tn_hd_pending.js) that aren't already live map
+   points — e.g. requests TDEC hasn't put on the ArcGIS map yet, or that have no coordinates.
+   Coordinate-less ones are placed on the county centroid and flagged. Never throws. */
+function mergeExtra(arr){
+  try{
+    if(typeof HD_EXTRA==='undefined' || !HD_EXTRA || !Array.isArray(HD_EXTRA.sites)) return arr;
+    const have=new Set(arr.map(s=>String(s.id)));
+    HD_EXTRA.sites.forEach((e,ix)=>{
+      const id = e.id!=null ? String(e.id) : null;
+      if(id && have.has(id)) return;                    // already shown live (mapped in ArcGIS)
+      const ms=+e.ms; if(!ms || !isFinite(ms)) return;  // need a real date (null->0) to window it
+      let lat=+e.lat, lon=+e.lon, approx=false, noLatLon=false;
+      if(!isFinite(lat)||!isFinite(lon)||!lat||!lon){   // no coordinates -> county centroid
+        const cc=countyCentroid(e.county); if(!cc) return;
+        lat=cc.lat; lon=cc.lon; approx=true; noLatLon=true;
+      }
+      arr.push({id: id||('req-'+ix), lat, lon, ms, huc:null, approx, noLatLon, unmapped:true,
+        county:(e.county||'').trim(), prop:e.prop||'',
+        loc:e.loc||(e.city?('near '+e.city):'')});
+      if(id) have.add(id);
+    });
+  }catch(err){ console.warn('HD_EXTRA merge skipped:', err); }
+  return arr;
+}
+/* Any determination placed on a county centroid (no real coordinates) would otherwise stack on
+   the exact same spot and be impossible to click. Fan them out around the centroid on a
+   phyllotaxis ("sunflower") spiral — even spacing, no two ever coincide, stable per run. Also
+   nudge them clear of the few real points that sit within a hair of the centroid. */
+function spreadApprox(arr){
+  try{
+    const groups={};
+    arr.forEach(s=>{ if(s && s.approx){ const n=canonCounty(s.county)||('?'+(s.county||'')); (groups[n]=groups[n]||[]).push(s); } });
+    const GOLDEN=Math.PI*(3-Math.sqrt(5)), BASE=0.02;   // ~1.5 km base spacing (degrees lat)
+    Object.keys(groups).forEach(n=>{
+      const pts=groups[n];
+      const c=countyCentroid(n) || {lat:pts[0].lat, lon:pts[0].lon};
+      const lonScale=1/Math.max(0.2, Math.cos(c.lat*Math.PI/180));
+      if(pts.length===1){ pts[0].lat=c.lat; pts[0].lon=c.lon; pts[0].centroid=[c.lat,c.lon]; return; }
+      pts.forEach((s,i)=>{
+        const rad=BASE*Math.sqrt(i+0.5), ang=i*GOLDEN;
+        s.lat=c.lat + rad*Math.sin(ang);
+        s.lon=c.lon + rad*Math.cos(ang)*lonScale;
+        s.spread=true; s.centroid=[c.lat,c.lon];
+      });
+    });
+  }catch(err){ console.warn('spreadApprox skipped:', err); }
+  return arr;
+}
 function ensureLiveData(){
   if(_liveAll && !_liveErr) return Promise.resolve(_liveAll);
   if(_liveDataPromise) return _liveDataPromise;
   _liveLoading=true; _liveErr=null;
   const since=(new Date().getFullYear()-2)+'-01-01';
   _liveDataPromise=fetchHDsince(since).then(a=>{
+    a=mergeExtra(a);
+    a=spreadApprox(a);
     _liveAll=a; _liveFetchedAt=Date.now(); _liveLoading=false;
     return a;
   }).catch(e=>{ _liveErr=e; _liveLoading=false; _liveDataPromise=null; throw e; });
@@ -891,25 +971,43 @@ function liveDrawSites(){
   siteLyr.clearLayers(); hdStreamLyr.clearLayers();
   if(!document.getElementById('ckSite').checked){ setHint('siteHint','HD sites hidden · showing sized dots'); return; }
   const r=siteRadius(), withStreams=streamsActive();
-  let enriched=0;
+  let enriched=0, approxN=0, futureN=0;
   liveSites.forEach(s=>{
     const rec = withStreams ? hdStreamsFor(s) : null;
     if(rec) enriched++;
-    const m=L.circleMarker([s.lat,s.lon],{radius:rec?r+1.4:r,fillColor:recencyColor(s.ms),
-      color:rec?'#0d7d8a':'#fff', weight:rec?2.4:1.1, opacity:.98, fillOpacity:.9, pane:'markerPane'})
+    const fut=isFuture(s.ms), appx=!!s.approx;
+    if(fut) futureN++;
+    if(appx) approxN++;
+    const fill = fut ? FUTURE_COL : recencyColor(s.ms);
+    const ring = rec ? '#0d7d8a' : (appx ? APPROX_RING : '#fff');
+    const numericId = /^\d+$/.test(String(s.id));
+    const idLabel = numericId ? ('HD ID '+s.id) : 'HD request (pending ID)';
+    const badges =
+      (fut?'<div class="sr"><span>Status</span><span style="color:'+FUTURE_COL+';font-weight:700">⏳ Future-dated</span></div>':'')+
+      (appx?'<div class="sr"><span>Location</span><span style="color:'+APPROX_RING+';font-weight:700">⚠ Location not added — placed within '+esc(s.county||'the')+' County (approx.)</span></div>':'')+
+      (s.unmapped?'<div class="sr"><span>Source</span><span>TDEC request list — not yet on the map service</span></div>':'');
+    const coordRow = '<div class="sr"><span>Coordinates</span><span>'+s.lat.toFixed(4)+', '+s.lon.toFixed(4)+(appx?(s.spread?' · approx. (spread within county)':' · county centroid'):'')+'</span></div>';
+    const link = numericId
+      ? '<a href="https://dataviewers.tdec.tn.gov/dataviewers/f?p=2005:34341:::NO::P34341_DETERMINATION_ID:'+s.id+'" target="_blank">Open record in TDEC DataViewer →</a>'
+      : '<div style="font-size:11px;color:#94a2ae;margin-top:4px">No determination ID yet — from the TDEC request list.</div>';
+    const m=L.circleMarker([s.lat,s.lon],{radius:rec?r+1.4:r, fillColor:fill,
+      color:ring, weight:rec?2.4:(appx?2:1.1), opacity:.98, fillOpacity:appx?.6:.9,
+      dashArray:appx?'2,3':null, pane:'markerPane'})
      .addTo(siteLyr)
-     .bindPopup('<div class="sitebox"><div class="sid">HD ID '+s.id+(rec?' · '+rec.features.length+' feature'+(rec.features.length===1?'':'s'):'')+'</div>'+
+     .bindPopup('<div class="sitebox"><div class="sid">'+idLabel+(rec?' · '+rec.features.length+' feature'+(rec.features.length===1?'':'s'):'')+'</div>'+
       '<div class="sn">'+esc(s.prop||'—')+'</div>'+
+      badges+
       '<div class="sr"><span>County</span><span>'+esc(s.county||'—')+'</span></div>'+
       (s.loc?'<div class="sr"><span>Location</span><span>'+esc(s.loc)+'</span></div>':'')+
-      '<div class="sr"><span>Investigated</span><span>'+fmtDate(s.ms)+' ('+daysAgo(s.ms)+')</span></div>'+
-      '<div class="sr"><span>Coordinates</span><span>'+s.lat.toFixed(4)+', '+s.lon.toFixed(4)+'</span></div>'+
+      '<div class="sr"><span>Investigated</span><span>'+fmtDate(s.ms)+' ('+daysAgo(s.ms)+(fut?' · future-dated':'')+')</span></div>'+
+      coordRow+
       (rec?hdStreamsHtml(rec):'')+
-      '<a href="https://dataviewers.tdec.tn.gov/dataviewers/f?p=2005:34341:::NO::P34341_DETERMINATION_ID:'+s.id+'" target="_blank">Open record in TDEC DataViewer →</a></div>',{maxWidth:340});
+      link+'</div>',{maxWidth:340});
     if(rec){ m.on('popupopen',()=>drawHdSegments(rec)); m.on('popupclose',()=>hdStreamLyr.clearLayers()); }
   });
   const enr = withStreams ? (enriched?' · '+enriched+' with stream detail':'') : '';
-  setHint('siteHint', liveSites.length.toLocaleString()+' determination'+(liveSites.length===1?'':'s')+' · '+liveMode.lab.toLowerCase()+enr+' · click for detail');
+  const flags = (futureN?' · '+futureN+' future-dated':'')+(approxN?' · '+approxN+' approx-located':'');
+  setHint('siteHint', liveSites.length.toLocaleString()+' determination'+(liveSites.length===1?'':'s')+' · '+liveMode.lab.toLowerCase()+enr+flags+' · click for detail');
 }
 function liveDrawDots(){
   dots.clearLayers();
@@ -924,7 +1022,9 @@ function liveDrawDots(){
 function liveLegend(){
   const L1=document.getElementById('leg'); const unit=(geo==='wshed'?'watershed':'county');
   const dotsOn=document.getElementById('ckSite').checked;
-  const rec=RECENCY.map(b=>'<span style="color:'+b.c+';font-weight:700">●</span> '+b.lab).join(' &nbsp; ');
+  const rec=RECENCY.map(b=>'<span style="color:'+b.c+';font-weight:700">●</span> '+b.lab).join(' &nbsp; ')+
+    ' &nbsp; <span style="color:'+FUTURE_COL+';font-weight:700">●</span> future-dated'+
+    ' &nbsp; <span style="color:'+APPROX_RING+';font-weight:700">◌</span> approx. location';
   L1.innerHTML='<div class="li"><span>Fewer</span><div class="ramp">'+BLU.map(c=>'<div style="background:'+c+'"></div>').join('')+'</div><span>More determinations</span></div>'+
    '<div class="li"><div class="sw" style="background:#f2f4f6"></div>No activity</div>'+
    (dotsOn?'<div class="li"><span style="color:#41525f;font-weight:600">Dot recency:</span>&nbsp;'+rec+'</div>':'')+
