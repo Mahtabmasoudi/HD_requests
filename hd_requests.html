@@ -1022,12 +1022,17 @@ function liveDrawDots(){
 function liveLegend(){
   const L1=document.getElementById('leg'); const unit=(geo==='wshed'?'watershed':'county');
   const dotsOn=document.getElementById('ckSite').checked;
-  const rec=RECENCY.map(b=>'<span style="color:'+b.c+';font-weight:700">●</span> '+b.lab).join(' &nbsp; ')+
-    ' &nbsp; <span style="color:'+FUTURE_COL+';font-weight:700">●</span> future-dated'+
-    ' &nbsp; <span style="color:'+APPROX_RING+';font-weight:700">◌</span> approx. location';
+  // swatch helpers: filled circle (fill colour = recency) vs. ring circle (outline = meaning)
+  const dot =(c)=>'<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+c+';vertical-align:-1px"></span>';
+  const ring=(c,s)=>'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;border:2px '+s+' '+c+';box-sizing:border-box;vertical-align:-1px"></span>';
+  const recency = RECENCY.map(b=>dot(b.c)+' '+b.lab).join(' &nbsp; ')
+    + ' &nbsp; ' + dot(FUTURE_COL) + ' future-dated';
+  const outline = ring('#0d7d8a','solid') + ' streams &amp; WWC detail (click)'
+    + ' &nbsp; ' + ring(APPROX_RING,'dotted') + ' approximate location (no coordinates)';
   L1.innerHTML='<div class="li"><span>Fewer</span><div class="ramp">'+BLU.map(c=>'<div style="background:'+c+'"></div>').join('')+'</div><span>More determinations</span></div>'+
    '<div class="li"><div class="sw" style="background:#f2f4f6"></div>No activity</div>'+
-   (dotsOn?'<div class="li"><span style="color:#41525f;font-weight:600">Dot recency:</span>&nbsp;'+rec+'</div>':'')+
+   (dotsOn?'<div class="li"><span style="color:#41525f;font-weight:600">Dot colour · recency:</span>&nbsp;'+recency+'</div>':'')+
+   (dotsOn?'<div class="li"><span style="color:#41525f;font-weight:600">Dot outline:</span>&nbsp;'+outline+'</div>':'')+
    '<div class="li" style="margin-left:auto">Shading = determinations by '+unit+' · '+liveMode.lab.toLowerCase()+'</div>';
 }
 function liveMsgStats(){
