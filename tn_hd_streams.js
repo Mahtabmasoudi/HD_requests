@@ -5,7 +5,7 @@
    Shown on the 14 / 30 / 90-day and 2026 live tabs of hd_requests.html.
    byId[<DETERMINATION_ID>] = {prop, county, count, features:[{id,len,lenFt,corps,tdec,point,start,end}]} */
 const STREAMS = {
- generatedAt:"2026-08-18 14:11 (auto)", window:"cumulative - detail is retained as points age; shown on the 14/30/90-day & 2026 tabs",
+ generatedAt:"2026-08-18 14:14 (auto)", window:"cumulative - detail is retained as points age; shown on the 14/30/90-day & 2026 tabs",
  byId:{
   "32521": {prop:"Deer Run RV Resort LLC.", county:"Cumberland", count:5, features:[
     {id:"STR-1", len:"394 ft", lenFt:394.4, corps:null, tdec:"Stream", point:false, start:[36.022031,-84.938932], end:[36.022879,-84.938103]},
@@ -94,6 +94,14 @@ const STREAMS = {
   "33532": {prop:"Love's Travel Stop", county:"Fayette", count:2, features:[
     {id:"Channel 1", len:"1,203 ft", lenFt:1202.5, corps:null, tdec:"WWC", point:false, start:[35.2861,-89.60716], end:[35.28939,-89.60691]},
     {id:"Channel 2", len:"68 ft", lenFt:67.5, corps:null, tdec:"WWC", point:false, start:[35.28639,-89.60685], end:[35.28646,-89.60706]}
+  ]},
+  "33550": {prop:"Berkshire Ridge Subdivision", county:"Wilson", count:6, features:[
+    {id:"S-1", len:"1,893 ft", lenFt:1892.7, corps:null, tdec:"Stream", point:false, start:[36.154022,-86.448555], end:[36.159207,-86.44878]},
+    {id:"S-2", len:"504 ft", lenFt:504.2, corps:null, tdec:"Stream", point:false, start:[36.156777,-86.449554], end:[36.157434,-86.448048]},
+    {id:"S-4 (formerly", len:"393 ft", lenFt:392.8, corps:null, tdec:"WWC", point:false, start:[36.155904,-86.451349], end:[36.156078,-86.450033]},
+    {id:"S-3 (formerly", len:"344 ft", lenFt:344.4, corps:null, tdec:"WWC", point:false, start:[36.155978,-86.447107], end:[36.156627,-86.447956]},
+    {id:"F6", len:"306 ft", lenFt:305.9, corps:null, tdec:"WWC", point:false, start:[36.158427,-86.449329], end:[36.158778,-86.448386]},
+    {id:"S-5 (formerly", len:"118 ft", lenFt:117.6, corps:null, tdec:"WWC", point:false, start:[36.156194,-86.449924], end:[36.156484,-86.44975]}
   ]},
   "33572": {prop:"MLGW - Lenow Road Gas Main Extension", county:"Shelby", count:2, features:[
     {id:"Trib #2", len:"1,045 ft", lenFt:1044.7, corps:null, tdec:"Stream", point:false, start:[35.17782,-89.736756], end:[35.180288,-89.738533]},
@@ -208,6 +216,53 @@ const STREAMS = {
   "34528": {prop:"Oikos TN, LLC Proposed Office Bulding", county:"Macon", count:1, features:[
     {id:"F1", len:"point", lenFt:0.0, corps:null, tdec:"WWC", point:true, start:[36.521899,-86.037518], end:[36.521899,-86.037518]}
   ]},
+  "34558": {prop:"31E HWY 0", county:"Sumner", count:19, features:[
+    {id:"Reach 4 North Wet weather", len:"7,091 ft", lenFt:7091.0, corps:null, tdec:"WWC", point:false, start:[36.41334,-86.39336], end:[36.41327,-86.369207]},
+    {id:"Reach 7", len:"1,272 ft", lenFt:1271.9, corps:null, tdec:"Stream", point:false, start:[36.41673,-86.39641], end:[36.41937,-86.39358]},
+    {id:"Reach 3 South", len:"899 ft", lenFt:899.3, corps:null, tdec:"Stream", point:false, start:[36.41339,-86.39424], end:[36.41396,-86.39126]},
+    {id:"Reach 6 Wet weather", len:"585 ft", lenFt:584.9, corps:null, tdec:"WWC", point:false, start:[36.413,-86.39561], end:[36.41372,-86.39383]},
+    {id:"Reach 9", len:"553 ft", lenFt:552.8, corps:null, tdec:"Stream", point:false, start:[36.41822,-86.39196], end:[36.41945,-86.39306]},
+    {id:"Reach 4 South Wet weather", len:"499 ft", lenFt:499.3, corps:null, tdec:"WWC", point:false, start:[36.41194,-86.39259], end:[36.41326,-86.39214]},
+    {id:"Reach 8 Wet weather", len:"455 ft", lenFt:455.4, corps:null, tdec:"WWC", point:false, start:[36.41797,-86.39263], end:[36.41854,-86.39401]},
+    {id:"Reach 3 Forth", len:"435 ft", lenFt:435.0, corps:null, tdec:"Stream", point:false, start:[36.41492,-86.39338], end:[36.41428,-86.39213]},
+    {id:"Reach 12 Wet weather", len:"391 ft", lenFt:391.0, corps:null, tdec:"WWC", point:false, start:[36.41672,-86.39371], end:[36.4173,-86.39483]},
+    {id:"Reach 10 Wet weather", len:"352 ft", lenFt:351.5, corps:null, tdec:"WWC", point:false, start:[36.41764,-86.39342], end:[36.41841,-86.39414]},
+    {id:"Reach 4", len:"346 ft", lenFt:346.3, corps:null, tdec:"Stream", point:false, start:[36.41327,-86.39207], end:[36.41396,-86.39126]},
+    {id:"Reach 14 Wet weather", len:"338 ft", lenFt:338.2, corps:null, tdec:"WWC", point:false, start:[36.41455,-86.39531], end:[36.4154,-86.39485]},
+    {id:"Reach 13", len:"283 ft", lenFt:283.1, corps:null, tdec:"Stream", point:false, start:[36.41613,-86.3955], end:[36.4169,-86.39562]},
+    {id:"Reach 5", len:"263 ft", lenFt:263.1, corps:null, tdec:"Stream", point:false, start:[36.41528,-86.39247], end:[36.41456,-86.39242]},
+    {id:"Reach 2 Wet weather", len:"235 ft", lenFt:235.2, corps:null, tdec:"WWC", point:false, start:[36.41807,-86.39112], end:[36.41858,-86.39063]},
+    {id:"Reach 11 Wet weather", len:"220 ft", lenFt:220.2, corps:null, tdec:"WWC", point:false, start:[36.41728,-86.39412], end:[36.41773,-86.39462]},
+    {id:"Reach 4 Middle Wet weather", len:"189 ft", lenFt:189.1, corps:null, tdec:"WWC", point:false, start:[36.41281,-86.39326], end:[36.41308,-86.39271]},
+    {id:"Reach 1 Wet weather", len:"129 ft", lenFt:128.5, corps:null, tdec:"WWC", point:false, start:[36.41773,-86.39092], end:[36.41789,-86.39053]},
+    {id:"Reach 15 Wet weather", len:"87 ft", lenFt:87.1, corps:null, tdec:"WWC", point:false, start:[36.41545,-86.39731], end:[36.41568,-86.39723]}
+  ]},
+  "34624": {prop:"1375 Long Hollow Pike", county:"Sumner", count:6, features:[
+    {id:"D-2a Wet weather", len:"655 ft", lenFt:654.7, corps:null, tdec:"WWC", point:false, start:[36.378169,-86.510895], end:[36.379781,-86.509915]},
+    {id:"D-1", len:"507 ft", lenFt:507.4, corps:null, tdec:"Stream", point:false, start:[36.380289,-86.511259], end:[36.380169,-86.509538]},
+    {id:"D-3", len:"280 ft", lenFt:280.3, corps:null, tdec:"Stream", point:false, start:[36.385862,-86.511539], end:[36.385555,-86.510664]},
+    {id:"D-4", len:"258 ft", lenFt:257.6, corps:null, tdec:"Stream", point:false, start:[36.385263,-86.511918], end:[36.38576,-86.511295]},
+    {id:"D-1a Wet weather", len:"257 ft", lenFt:257.4, corps:null, tdec:"WWC", point:false, start:[36.380124,-86.512111], end:[36.380289,-86.511259]},
+    {id:"D-2", len:"167 ft", lenFt:167.1, corps:null, tdec:"Stream", point:false, start:[36.379781,-86.509915], end:[36.380177,-86.509629]}
+  ]},
+  "34670": {prop:"Airport Road", county:"Sumner", count:2, features:[
+    {id:"F2", len:"50 ft", lenFt:50.0, corps:null, tdec:"WWC", point:false, start:[36.583158,-86.482311], end:[36.583245,-86.482443]},
+    {id:"F1", len:"45 ft", lenFt:45.3, corps:null, tdec:"WWC", point:false, start:[36.583055,-86.482389], end:[36.583171,-86.482334]}
+  ]},
+  "34686": {prop:"Apple View Acres", county:"Sevier", count:7, features:[
+    {id:"CH3", len:"981 ft", lenFt:980.8, corps:null, tdec:"WWC", point:false, start:[35.82439,-83.58639], end:[35.82588,-83.58363]},
+    {id:"CH6", len:"873 ft", lenFt:873.2, corps:null, tdec:"WWC", point:false, start:[35.82675,-83.58671], end:[35.82521,-83.58445]},
+    {id:"CH5", len:"589 ft", lenFt:589.5, corps:null, tdec:"WWC", point:false, start:[35.82587,-83.58639], end:[35.82472,-83.58499]},
+    {id:"CH4", len:"427 ft", lenFt:427.4, corps:null, tdec:"WWC", point:false, start:[35.82514,-83.58645], end:[35.8244,-83.58533]},
+    {id:"CH1", len:"423 ft", lenFt:422.9, corps:null, tdec:"WWC", point:false, start:[35.82662,-83.58503], end:[35.82599,-83.58383]},
+    {id:"CH7", len:"291 ft", lenFt:290.8, corps:null, tdec:"WWC", point:false, start:[35.82654,-83.58717], end:[35.82641,-83.5862]},
+    {id:"CH2", len:"278 ft", lenFt:278.4, corps:null, tdec:"Stream", point:false, start:[35.82599,-83.58383], end:[35.82554,-83.58307]}
+  ]},
+  "34687": {prop:"0 Old Hickory Blvd", county:"Davidson", count:3, features:[
+    {id:"F2", len:"793 ft", lenFt:792.8, corps:null, tdec:"WWC", point:false, start:[36.034458,-86.689546], end:[36.036068,-86.691351]},
+    {id:"STR-1", len:"367 ft", lenFt:367.0, corps:null, tdec:"Stream", point:false, start:[36.036068,-86.691351], end:[36.037031,-86.691711]},
+    {id:"F3", len:"298 ft", lenFt:298.3, corps:null, tdec:"WWC", point:false, start:[36.036486,-86.692586], end:[36.036653,-86.691596]}
+  ]},
   "34699": {prop:"Grandview Phase IV", county:"Sequatchie", count:7, features:[
     {id:"S1", len:"150 ft", lenFt:149.7, corps:null, tdec:"Stream", point:false, start:[35.242604,-85.360766], end:[35.242747,-85.360295]},
     {id:"F1", len:"129 ft", lenFt:128.9, corps:null, tdec:"WWC", point:false, start:[35.242281,-85.355869], end:[35.242612,-85.355718]},
@@ -217,8 +272,47 @@ const STREAMS = {
     {id:"F2", len:"63 ft", lenFt:63.5, corps:null, tdec:"WWC", point:false, start:[35.241898,-85.356974], end:[35.242072,-85.35697]},
     {id:"F6", len:"52 ft", lenFt:52.1, corps:null, tdec:"WWC", point:false, start:[35.244714,-85.357094], end:[35.244835,-85.357001]}
   ]},
+  "34703": {prop:"Walnut Grove-Hall Road Planned Development", county:"Shelby", count:13, features:[
+    {id:"S-2 Jurisdictional", len:"1,783 ft", lenFt:1783.4, corps:null, tdec:"Stream", point:false, start:[35.124071,-89.733845], end:[35.125764,-89.728238]},
+    {id:"S-4 Jurisdictional", len:"1,242 ft", lenFt:1242.4, corps:null, tdec:"Stream", point:false, start:[35.125817,-89.738526], end:[35.12922,-89.738366]},
+    {id:"F11", len:"511 ft", lenFt:510.9, corps:null, tdec:"WWC", point:false, start:[35.124792,-89.734298], end:[35.124694,-89.736006]},
+    {id:"S-3 Jurisdictional", len:"450 ft", lenFt:449.6, corps:null, tdec:"Stream", point:false, start:[35.126144,-89.736176], end:[35.124913,-89.736248]},
+    {id:"F7", len:"283 ft", lenFt:283.2, corps:null, tdec:"WWC", point:false, start:[35.126976,-89.732138], end:[35.126338,-89.732679]},
+    {id:"F6", len:"168 ft", lenFt:168.1, corps:null, tdec:"WWC", point:false, start:[35.12673,-89.731791], end:[35.12663,-89.732341]},
+    {id:"F8", len:"162 ft", lenFt:161.8, corps:null, tdec:"WWC", point:false, start:[35.126904,-89.732476], end:[35.126462,-89.732522]},
+    {id:"S-1 Jurisdictional", len:"152 ft", lenFt:151.7, corps:null, tdec:"Stream", point:false, start:[35.125963,-89.729213], end:[35.125608,-89.729478]},
+    {id:"F9", len:"126 ft", lenFt:125.7, corps:null, tdec:"WWC", point:false, start:[35.125942,-89.73353], end:[35.126151,-89.733195]},
+    {id:"F10", len:"118 ft", lenFt:118.3, corps:null, tdec:"WWC", point:false, start:[35.125055,-89.734739], end:[35.124787,-89.734962]},
+    {id:"F12", len:"89 ft", lenFt:89.0, corps:null, tdec:"WWC", point:false, start:[35.125352,-89.737588], end:[35.125113,-89.737528]},
+    {id:"F13", len:"40 ft", lenFt:39.6, corps:null, tdec:"WWC", point:false, start:[35.12564,-89.730621], end:[35.125532,-89.730607]},
+    {id:"F5", len:"34 ft", lenFt:33.5, corps:null, tdec:"WWC", point:false, start:[35.1268,-89.728972], end:[35.126891,-89.728956]}
+  ]},
   "34707": {prop:"4484 Sycamore Road", county:"Robertson", count:1, features:[
     {id:"D-1 Wet Weather", len:"882 ft", lenFt:881.8, corps:null, tdec:"WWC", point:false, start:[36.40271,-86.78584], end:[36.40512,-86.78607]}
+  ]},
+  "34712": {prop:"Liberty Church Road", county:"Williamson", count:16, features:[
+    {id:"Feature C2", len:"3,736 ft", lenFt:3736.4, corps:null, tdec:"Stream", point:false, start:[35.9979,-86.7326], end:[36.008,-86.7305]},
+    {id:"Feature I1", len:"807 ft", lenFt:807.5, corps:null, tdec:"WWC", point:false, start:[35.9968,-86.7308], end:[35.999,-86.7311]},
+    {id:"Feature A", len:"621 ft", lenFt:620.9, corps:null, tdec:"WWC", point:false, start:[35.9996,-86.7367], end:[36.0013,-86.7366]},
+    {id:"Feature B2", len:"518 ft", lenFt:518.4, corps:null, tdec:"Stream", point:false, start:[35.9998,-86.7348], end:[36.0012,-86.7345]},
+    {id:"Feature L", len:"475 ft", lenFt:475.2, corps:null, tdec:"WWC", point:false, start:[35.9966,-86.7327], end:[35.9979,-86.7326]},
+    {id:"Feature C1", len:"415 ft", lenFt:414.8, corps:null, tdec:"WWC", point:false, start:[35.9978,-86.734], end:[35.9979,-86.7326]},
+    {id:"Feature N", len:"370 ft", lenFt:369.6, corps:null, tdec:"WWC", point:false, start:[35.9996,-86.7383], end:[36.0006,-86.7381]},
+    {id:"Feature G", len:"333 ft", lenFt:332.7, corps:null, tdec:"WWC", point:false, start:[36.0007,-86.7317], end:[36.0005,-86.7306]},
+    {id:"Feature M", len:"275 ft", lenFt:275.5, corps:null, tdec:"WWC", point:false, start:[35.9993,-86.7321], end:[35.9991,-86.7312]},
+    {id:"Feature E", len:"239 ft", lenFt:238.9, corps:null, tdec:"WWC", point:false, start:[35.9999,-86.7317], end:[35.9998,-86.7309]},
+    {id:"Feature B1", len:"192 ft", lenFt:191.7, corps:null, tdec:"WWC", point:false, start:[35.9993,-86.735], end:[35.9998,-86.7348]},
+    {id:"Feature I2", len:"192 ft", lenFt:191.7, corps:null, tdec:"Stream", point:false, start:[35.999,-86.7311], end:[35.9995,-86.7309]},
+    {id:"Feature F", len:"181 ft", lenFt:180.8, corps:null, tdec:"WWC", point:false, start:[36.0004,-86.7312], end:[36.0005,-86.7306]},
+    {id:"Feature H", len:"165 ft", lenFt:164.6, corps:null, tdec:"WWC", point:false, start:[36.0002,-86.7319], end:[36.0,-86.7314]},
+    {id:"Feature J", len:"141 ft", lenFt:140.8, corps:null, tdec:"WWC", point:false, start:[35.9987,-86.7314], end:[35.999,-86.7311]},
+    {id:"Feature K", len:"115 ft", lenFt:114.7, corps:null, tdec:"WWC", point:false, start:[35.9981,-86.7305], end:[35.9983,-86.7308]}
+  ]},
+  "34714": {prop:"Edwin Warner Park", county:"Davidson", count:4, features:[
+    {id:"Channel 1a", len:"26,058 ft", lenFt:26057.6, corps:null, tdec:"Stream", point:false, start:[36.050866,-86.98517], end:[36.048746,-86.896864]},
+    {id:"Channel 3 Wet weather", len:"2,203 ft", lenFt:2202.9, corps:null, tdec:"WWC", point:false, start:[36.054419,-86.90007], end:[36.049549,-86.904486]},
+    {id:"Channel 1", len:"1,667 ft", lenFt:1666.6, corps:null, tdec:"Stream", point:false, start:[36.052307,-86.894042], end:[36.048339,-86.896842]},
+    {id:"Channel 2", len:"636 ft", lenFt:635.9, corps:null, tdec:"Stream", point:false, start:[36.052765,-86.895398], end:[36.051024,-86.895293]}
   ]},
   "34715": {prop:"BRADLEY WYATT ROAD CHICKEN BARNS SITE #2", county:"Bledsoe", count:4, features:[
     {id:"F4", len:"720 ft", lenFt:719.6, corps:null, tdec:"WWC", point:false, start:[35.680612,-85.221268], end:[35.680286,-85.223663]},
@@ -231,6 +325,16 @@ const STREAMS = {
     {id:"F1", len:"319 ft", lenFt:318.7, corps:null, tdec:"WWC", point:false, start:[35.685092,-85.231133], end:[35.684285,-85.231545]},
     {id:"F2", len:"300 ft", lenFt:300.2, corps:null, tdec:"WWC", point:false, start:[35.685642,-85.231802], end:[35.685227,-85.232677]},
     {id:"F3", len:"293 ft", lenFt:293.0, corps:null, tdec:"WWC", point:false, start:[35.686461,-85.230979], end:[35.686959,-85.231755]}
+  ]},
+  "34730": {prop:"Cherry Blossom Way", county:"Wilson", count:8, features:[
+    {id:"UT7 Wet Weather", len:"502 ft", lenFt:502.4, corps:null, tdec:"WWC", point:false, start:[36.248935,-86.386686], end:[36.247818,-86.387685]},
+    {id:"UT2", len:"431 ft", lenFt:431.4, corps:null, tdec:"Stream", point:false, start:[36.245602,-86.386076], end:[36.244691,-86.387011]},
+    {id:"UT5 Wet Weather", len:"294 ft", lenFt:293.8, corps:null, tdec:"WWC", point:false, start:[36.246401,-86.385951], end:[36.245602,-86.386076]},
+    {id:"UT3 Wet Weather", len:"273 ft", lenFt:272.8, corps:null, tdec:"WWC", point:false, start:[36.245358,-86.385367], end:[36.245188,-86.38627]},
+    {id:"UT8 Wet Weather", len:"197 ft", lenFt:197.0, corps:null, tdec:"WWC", point:false, start:[36.248284,-86.386403], end:[36.24826,-86.387072]},
+    {id:"UT6 Wet Weather", len:"165 ft", lenFt:165.4, corps:null, tdec:"WWC", point:false, start:[36.246027,-86.384723], end:[36.245699,-86.385111]},
+    {id:"UT4 Wet Weather", len:"53 ft", lenFt:53.0, corps:null, tdec:"WWC", point:false, start:[36.245449,-86.384952], end:[36.245534,-86.385098]},
+    {id:"UT1", len:"36 ft", lenFt:36.4, corps:null, tdec:"Stream", point:false, start:[36.244894,-86.38698], end:[36.244795,-86.386996]}
   ]},
   "34731": {prop:"9553 Clovercroft Road", county:"Williamson", count:6, features:[
     {id:"Mayes Creek", len:"2,054 ft", lenFt:2053.8, corps:null, tdec:"Stream", point:false, start:[35.924748,-86.723711], end:[35.921769,-86.72961]},
@@ -295,6 +399,25 @@ const STREAMS = {
     {id:"Feature G", len:"203 ft", lenFt:202.6, corps:null, tdec:"WWC", point:false, start:[36.3154,-86.6829], end:[36.3159,-86.6826]},
     {id:"Feature D", len:"113 ft", lenFt:113.3, corps:null, tdec:"WWC", point:false, start:[36.3156,-86.6844], end:[36.3159,-86.6843]},
     {id:"Feature E", len:"79 ft", lenFt:78.7, corps:null, tdec:"WWC", point:false, start:[36.3158,-86.6842], end:[36.316,-86.6841]}
+  ]},
+  "34752": {prop:"Duke Energy/PNG - White House Supply Line Loop HWY 76 and I-65", county:"Robertson", count:17, features:[
+    {id:"DF-11s", len:"66,043 ft", lenFt:66042.9, corps:null, tdec:"Stream", point:false, start:[36.463504,-86.49822], end:[36.472413,-86.723059]},
+    {id:"DF-1w Wet weather convey", len:"550 ft", lenFt:549.9, corps:null, tdec:"WWC", point:false, start:[36.463174,-86.685729], end:[36.463247,-86.687601]},
+    {id:"DF-9s", len:"513 ft", lenFt:512.7, corps:null, tdec:"Stream", point:false, start:[36.460879,-86.69665], end:[36.461847,-86.697917]},
+    {id:"DF-3s", len:"395 ft", lenFt:395.5, corps:null, tdec:"Stream", point:false, start:[36.471781,-86.724834], end:[36.470697,-86.724847]},
+    {id:"DF-6s", len:"369 ft", lenFt:368.7, corps:null, tdec:"Stream", point:false, start:[36.469619,-86.725822], end:[36.469234,-86.726984]},
+    {id:"DF-2a(w) Wet weather convey", len:"285 ft", lenFt:285.1, corps:null, tdec:"WWC", point:false, start:[36.465583,-86.682402], end:[36.465659,-86.683369]},
+    {id:"DF-12w Wet weather convey", len:"284 ft", lenFt:283.9, corps:null, tdec:"WWC", point:false, start:[36.473156,-86.722771], end:[36.472413,-86.723059]},
+    {id:"DF-2s", len:"275 ft", lenFt:275.3, corps:null, tdec:"Stream", point:false, start:[36.465659,-86.683369], end:[36.465415,-86.684257]},
+    {id:"DF-4w Wet weather convey", len:"236 ft", lenFt:235.8, corps:null, tdec:"WWC", point:false, start:[36.471543,-86.724014], end:[36.471267,-86.724741]},
+    {id:"DF-5w Wet weather convey", len:"233 ft", lenFt:233.1, corps:null, tdec:"WWC", point:false, start:[36.470067,-86.726586], end:[36.46946,-86.726338]},
+    {id:"DF-8w Wet weather convey", len:"134 ft", lenFt:133.7, corps:null, tdec:"WWC", point:false, start:[35.465198,-86.699567], end:[35.464913,-86.699284]},
+    {id:"DF-10w Wet weather convey", len:"134 ft", lenFt:133.5, corps:null, tdec:"WWC", point:false, start:[36.465164,-86.684547], end:[36.465455,-86.684271]},
+    {id:"DF-7s", len:"104 ft", lenFt:104.3, corps:null, tdec:"Stream", point:false, start:[36.467861,-86.717499], end:[36.467666,-86.717759]},
+    {id:"DF-2b(w) Wet weather convey", len:"84 ft", lenFt:83.9, corps:null, tdec:"WWC", point:false, start:[36.46583,-86.683564], end:[36.465619,-86.683678]},
+    {id:"DF-13w Wet weather convey", len:"77 ft", lenFt:77.3, corps:null, tdec:"WWC", point:false, start:[36.463039,-86.698003], end:[36.463141,-86.698234]},
+    {id:"DF-15w Wet weather convey", len:"69 ft", lenFt:68.6, corps:null, tdec:"WWC", point:false, start:[36.471305,-86.704198], end:[36.471289,-86.704431]},
+    {id:"DF-14w Wet weather convey", len:"63 ft", lenFt:62.9, corps:null, tdec:"WWC", point:false, start:[36.462778,-86.695573], end:[36.462797,-86.695786]}
   ]},
   "34757": {prop:"Ridgeline Expansion Project", county:"Jackson", count:1, features:[
     {id:"SS-JAC-T05-009", len:"1,468 ft", lenFt:1467.6, corps:null, tdec:"Stream", point:false, start:[36.343497,-85.794104], end:[36.339756,-85.792267]}
@@ -383,6 +506,10 @@ const STREAMS = {
     {id:"L2 Wet Weather", len:"54 ft", lenFt:53.8, corps:null, tdec:"WWC", point:false, start:[35.792609,-86.615825], end:[35.792629,-86.616005]},
     {id:"L15 Wet Weather", len:"53 ft", lenFt:53.2, corps:null, tdec:"WWC", point:false, start:[35.792668,-86.613], end:[35.79257,-86.613133]}
   ]},
+  "34784": {prop:"Country Landing Phase 4", county:"Coffee", count:2, features:[
+    {id:"Reach 1", len:"1,396 ft", lenFt:1395.7, corps:null, tdec:"WWC", point:false, start:[35.452846,-86.123585], end:[35.456233,-86.125769]},
+    {id:"Reach 2", len:"1,142 ft", lenFt:1142.1, corps:null, tdec:"Stream", point:false, start:[35.456233,-86.125769], end:[35.456411,-86.129606]}
+  ]},
   "34786": {prop:"Burrus Ridge Water Line and Roadway Expansions", county:"Robertson", count:9, features:[
     {id:"STR-4", len:"394 ft", lenFt:394.4, corps:null, tdec:"Stream", point:false, start:[36.430384,-86.712387], end:[36.430026,-86.713655]},
     {id:"STR-6", len:"347 ft", lenFt:346.6, corps:null, tdec:"Stream", point:false, start:[36.468893,-86.692027], end:[36.467958,-86.692236]},
@@ -393,6 +520,10 @@ const STREAMS = {
     {id:"STR-1", len:"20 ft", lenFt:20.0, corps:null, tdec:"Stream", point:false, start:[36.447574,-86.714375], end:[36.447574,-86.714443]},
     {id:"F8", len:"16 ft", lenFt:16.2, corps:null, tdec:"WWC", point:false, start:[36.439026,-86.712875], end:[36.439009,-86.712926]},
     {id:"STR-3", len:"16 ft", lenFt:15.6, corps:null, tdec:"Stream", point:false, start:[36.429966,-86.713687], end:[36.43,-86.713719]}
+  ]},
+  "34790": {prop:"Union Depot First Addition", county:"Shelby", count:2, features:[
+    {id:"STM-1", len:"1,154 ft", lenFt:1154.0, corps:null, tdec:"Stream", point:false, start:[35.20827,-89.831369], end:[35.205133,-89.83087]},
+    {id:"F1", len:"736 ft", lenFt:735.8, corps:null, tdec:"WWC", point:false, start:[35.20817,-89.829637], end:[35.206334,-89.830659]}
   ]},
   "34791": {prop:"3048 Highway 41 South", county:"Robertson", count:1, features:[
     {id:"Watercourse 1 Wet Weather", len:"86 ft", lenFt:86.1, corps:null, tdec:"WWC", point:false, start:[36.451083,-86.827038], end:[36.450989,-86.826769]}
@@ -405,6 +536,15 @@ const STREAMS = {
     {id:"STR-2", len:"147 ft", lenFt:146.9, corps:null, tdec:"Stream", point:false, start:[35.800768,-86.382057], end:[35.800583,-86.382498]},
     {id:"F3", len:"136 ft", lenFt:136.2, corps:null, tdec:"WWC", point:false, start:[35.800579,-86.382498], end:[35.800826,-86.382843]},
     {id:"F7", len:"132 ft", lenFt:132.2, corps:null, tdec:"WWC", point:false, start:[35.805176,-86.388184], end:[35.80508,-86.387753]}
+  ]},
+  "34794": {prop:"7200 Washington Pike", county:"Knox", count:4, features:[
+    {id:"STR-1", len:"337 ft", lenFt:337.0, corps:null, tdec:"Stream", point:false, start:[36.082657,-83.823539], end:[36.082579,-83.8224]},
+    {id:"F4", len:"116 ft", lenFt:116.3, corps:null, tdec:"WWC", point:false, start:[36.082247,-83.82333], end:[36.082362,-83.822962]},
+    {id:"F3", len:"58 ft", lenFt:57.6, corps:null, tdec:"WWC", point:false, start:[36.082569,-83.822767], end:[36.082514,-83.822584]},
+    {id:"STR-2", len:"point", lenFt:0.0, corps:null, tdec:"Stream", point:true, start:[36.082483,-83.822548], end:[36.082483,-83.822548]}
+  ]},
+  "34795": {prop:"Ironwood Planned Development", county:"Shelby", count:1, features:[
+    {id:"F1", len:"331 ft", lenFt:330.6, corps:null, tdec:"Stream", point:false, start:[35.044689,-89.731163], end:[35.044451,-89.732231]}
   ]},
   "34796": {prop:"Stelling Planned Development", county:"Shelby", count:4, features:[
     {id:"STM 1", len:"1,047 ft", lenFt:1046.5, corps:null, tdec:"Stream", point:false, start:[35.249139,-89.86194], end:[35.250785,-89.859063]},
@@ -427,6 +567,13 @@ const STREAMS = {
   ]},
   "34810": {prop:"Birchwood III Landfill update", county:"Hamilton", count:1, features:[
     {id:"F1", len:"1,640 ft", lenFt:1640.2, corps:null, tdec:"WWC", point:false, start:[35.19742,-85.0837], end:[35.19754,-85.0892]}
+  ]},
+  "34812": {prop:"Bulk Storage Railyard", county:"Maury", count:2, features:[
+    {id:"STR2", len:"89,565 ft", lenFt:89565.2, corps:null, tdec:"Stream", point:false, start:[35.51703,-87.51752], end:[35.5181,-87.21589]},
+    {id:"STR1", len:"107 ft", lenFt:107.5, corps:null, tdec:"Stream", point:false, start:[35.51664,-87.2178], end:[35.51688,-87.21759]}
+  ]},
+  "34815": {prop:"Mahlon Moore Road", county:"Maury", count:1, features:[
+    {id:"STM-1", len:"40 ft", lenFt:39.6, corps:null, tdec:"Stream", point:false, start:[35.704104,-86.917139], end:[35.704037,-86.917244]}
   ]},
   "34817": {prop:"7348 Overbey Road", county:"Williamson", count:9, features:[
     {id:"STM-1", len:"1,333 ft", lenFt:1332.6, corps:null, tdec:"Stream", point:false, start:[35.949038,-87.153041], end:[35.949715,-87.157475]},
@@ -482,6 +629,10 @@ const STREAMS = {
     {id:"RPW-4", len:"191 ft", lenFt:191.4, corps:null, tdec:"Stream", point:false, start:[36.24972,-82.52583], end:[36.25,-82.52638]},
     {id:"RPW-3", len:"82 ft", lenFt:82.4, corps:null, tdec:"Stream", point:false, start:[36.25055,-82.52416], end:[36.25055,-82.52444]},
     {id:"F5", len:"79 ft", lenFt:79.4, corps:null, tdec:"WWC", point:false, start:[36.25027,-82.52361], end:[36.25027,-82.52388]}
+  ]},
+  "34862": {prop:"TDOT PIN 124210.00 and 124212.00", county:"Dyer", count:2, features:[
+    {id:"STR-1", len:"point", lenFt:0.0, corps:null, tdec:"Stream", point:true, start:[36.029493,-89.38641], end:[36.029493,-89.38641]},
+    {id:"STR-2", len:"point", lenFt:0.0, corps:null, tdec:"Stream", point:true, start:[36.03053,-89.384969], end:[36.03053,-89.384969]}
   ]},
   "34865": {prop:"4086 and 4092 Clovercroft", county:"Williamson", count:2, features:[
     {id:"F2", len:"545 ft", lenFt:544.9, corps:null, tdec:"Stream", point:false, start:[35.9207,-86.788], end:[35.919446,-86.789002]},
